@@ -252,6 +252,19 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 			
 			# Draw diagonal connection
 			draw_diagonal_connection(right_point, above_right_stick)
+	
+	# Add diagonal connections from the bottom row's outer white points
+	var bottom_row = grid_points[rows-1]  # Get the bottom row
+	
+	# Connect leftmost point in bottom row to the left stick endpoint in the row above
+	var bottom_left_point = bottom_row[0]
+	var above_left_stick = stick_ends[rows-2][0]["position"]
+	draw_diagonal_connection(bottom_left_point, above_left_stick)
+	
+	# Connect rightmost point in bottom row to the right stick endpoint in the row above
+	var bottom_right_point = bottom_row[bottom_row.size()-1]
+	var above_right_stick = stick_ends[rows-2][1]["position"]
+	draw_diagonal_connection(bottom_right_point, above_right_stick)
 
 func _draw():
 	# Get viewport dimensions to center the triangle
