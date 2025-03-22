@@ -3,13 +3,15 @@ extends Node2D
 # Triangle configuration
 var base_width = 200.0  # Base width of the triangle in pixels
 var scale_factor = 1.2  # Scale factor to adjust the overall size
-var height_to_width_ratio = 1.8  # How much taller the triangle is compared to its width
+var height_to_width_ratio = 1.8  # How much taller the triangle is compared to its width (set to 1.8 as required)
 var grid_color = Color(0.7, 0.7, 0.7, 1.0)  # Light gray color for the grid
 var point_color = Color(0.3, 0.3, 0.3, 1.0)  # Dark gray color for the points
 var triangle_color = Color(0.9, 0.9, 0.9, 0.3)  # Light gray with opacity for triangle fill
 var intersection_fill_color = Color(1.0, 1.0, 1.0, 1.0)  # White color for intersection fill
 var intersection_radius = 5.0  # Radius of the intersection points (increased from 3.0)
 var connection_width = 1.5  # Width of the connection lines
+var stick_extension_ratio = 0.7  # How far the sticks extend beyond the triangle (70% of original line length)
+var outer_point_color = Color(0.0, 0.0, 0.0, 1.0)  # Black color for outer intersection points
 
 func _ready():
 	# Draw once at startup
@@ -21,11 +23,16 @@ func _process(_delta):
 
 # Function to draw an intersection point
 # position: Vector2 position of the intersection
-func draw_intersection(position):
-	# Draw filled white circle
-	draw_circle(position, intersection_radius, intersection_fill_color)
-	# Draw circle outline
-	draw_circle_arc(position, intersection_radius, 0, 360, point_color)
+# is_outer: whether this is an outer point (at the end of a stick)
+func draw_intersection(position, is_outer = false):
+	if is_outer:
+		# Draw filled black circle for outer points
+		draw_circle(position, intersection_radius, outer_point_color)
+	else:
+		# Draw filled white circle
+		draw_circle(position, intersection_radius, intersection_fill_color)
+		# Draw circle outline
+		draw_circle_arc(position, intersection_radius, 0, 360, point_color)
 
 # Helper function to draw circle outline
 func draw_circle_arc(center, radius, angle_from, angle_to, color):
@@ -39,6 +46,34 @@ func draw_circle_arc(center, radius, angle_from, angle_to, color):
 	for index_point in range(nb_points):
 		draw_line(points_arc[index_point], points_arc[index_point + 1], color, 1)
 
+# Function to draw a horizontal stick
+func draw_horizontal_stick(start_point, direction, stick_length):
+	# Calculate the end point of the stick (horizontal)
+	var stick_end = Vector2(start_point.x + direction * stick_length, start_point.y)
+	
+	# Draw the horizontal line (only 70% visible)
+	var visible_end = Vector2(start_point.x + direction * stick_length * 0.7, start_point.y)
+	draw_line(start_point, visible_end, grid_color, connection_width)
+	
+	# Draw the black point at the end
+	draw_intersection(stick_end, true)
+	
+	return stick_end
+
+# Function to draw a diagonal stick
+func draw_diagonal_stick(start_point, direction, stick_length):
+	# Calculate the end point of the stick
+	var stick_end = start_point + direction * stick_length
+	
+	# Draw the diagonal line (only 70% visible)
+	var visible_end = start_point + direction * stick_length * 0.7
+	draw_line(start_point, visible_end, grid_color, connection_width)
+	
+	# Draw the black point at the end
+	draw_intersection(stick_end, true)
+	
+	return stick_end
+
 # Function to draw a triangle with a grid
 # x_size: width of the triangle
 # height_ratio: how much taller the triangle is compared to its width
@@ -48,23 +83,18 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 	var y_size = x_size * height_ratio
 	
 	# Calculate the three points of the triangle
-	var top_point = Vector2(x_pos, y_pos)
-	var bottom_left = Vector2(x_pos - x_size/2, y_pos + y_size)
-	var bottom_right = Vector2(x_pos + x_size/2, y_pos + y_size)
+	var triangle_top = Vector2(x_pos, y_pos)
+	var triangle_bottom_left = Vector2(x_pos - x_size/2, y_pos + y_size)
+	var triangle_bottom_right = Vector2(x_pos + x_size/2, y_pos + y_size)
 	
 	# Draw the filled triangle
-	var triangle = PackedVector2Array([top_point, bottom_left, bottom_right])
+	var triangle = PackedVector2Array([triangle_top, triangle_bottom_left, triangle_bottom_right])
 	draw_colored_polygon(triangle, triangle_color)
 	
 	# Draw the triangle outline
-	draw_line(top_point, bottom_left, grid_color, connection_width)
-	draw_line(bottom_left, bottom_right, grid_color, connection_width)
-	draw_line(bottom_right, top_point, grid_color, connection_width)
-	
-	# Draw the corner points
-	draw_intersection(top_point)
-	draw_intersection(bottom_left)
-	draw_intersection(bottom_right)
+	draw_line(triangle_top, triangle_bottom_left, grid_color, connection_width)
+	draw_line(triangle_bottom_left, triangle_bottom_right, grid_color, connection_width)
+	draw_line(triangle_bottom_right, triangle_top, grid_color, connection_width)
 	
 	# Create a triangular grid with 6 rows
 	var rows = 6
@@ -127,18 +157,57 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 			# Draw the line
 			draw_line(start, end, grid_color, connection_width)
 	
-	# Draw diagonal connections
+	# Draw diagonal connections - only those that form proper triangles
+	# Each triangle is formed by:
+	# 1. A point in the current row
+	# 2. The point directly below it in the next row
+	# 3. The point to the right of that in the next row
 	for row in range(rows - 1):
 		var upper_row = grid_points[row]
 		var lower_row = grid_points[row + 1]
 		
 		for i in range(upper_row.size()):
+			# Only draw if we have a point to the right in the lower row
 			if i + 1 < lower_row.size():
-				var start = upper_row[i]
-				var end = lower_row[i + 1]
+				var diagonal_start_point = upper_row[i]
+				var diagonal_end_point = lower_row[i + 1]
 				
-				# Draw the line
-				draw_line(start, end, grid_color, connection_width)
+				# Draw the diagonal line from top to bottom-right
+				draw_line(diagonal_start_point, diagonal_end_point, grid_color, connection_width)
+	
+	# Add horizontal sticks to the left side of the triangle
+	for row in range(rows):  # Include all rows
+		var points_in_row = row + 1  # Row 0 has 1 point, row 5 has 6 points
+		var row_width = x_size * row / (rows - 1)
+		var col_width = row_width / (points_in_row - 1) if points_in_row > 1 else 0
+		var stick_length = col_width * 1.2
+		
+		var point = grid_points[row][0]  # Leftmost point in row
+		draw_horizontal_stick(point, -1, stick_length)  # -1 for left direction
+	
+	# Add horizontal sticks to the right side of the triangle
+	for row in range(rows):  # Include all rows
+		var points_in_row = row + 1  # Row 0 has 1 point, row 5 has 6 points
+		var row_width = x_size * row / (rows - 1)
+		var col_width = row_width / (points_in_row - 1) if points_in_row > 1 else 0
+		var stick_length = col_width * 1.2
+		
+		var point = grid_points[row][row]  # Rightmost point in row
+		draw_horizontal_stick(point, 1, stick_length)  # 1 for right direction
+	
+	# Add the two diagonal sticks above the top point
+	# Calculate diagonal directions from top point
+	var top_left_dir = (grid_points[1][0] - triangle_top).normalized()
+	var top_right_dir = (grid_points[1][1] - triangle_top).normalized()
+	
+	# Draw diagonal sticks above top point
+	var top_stick_length = row_height * 0.7
+	
+	# Left diagonal stick
+	draw_diagonal_stick(triangle_top, -top_left_dir, top_stick_length)
+	
+	# Right diagonal stick
+	draw_diagonal_stick(triangle_top, -top_right_dir, top_stick_length)
 
 func _draw():
 	# Get viewport dimensions to center the triangle
