@@ -3,7 +3,7 @@ extends Node2D
 # Triangle configuration
 var base_width = 200.0  # Base width of the triangle in pixels
 var scale_factor = 1.2  # Scale factor to adjust the overall size
-var height_to_width_ratio = 1.8  # How much taller the triangle is compared to its width (set to 1.8 as required)
+var height_to_width_ratio = 1.0  # How much taller the triangle is compared to its width (set to 1.8 as required)
 var grid_color = Color(0.7, 0.7, 0.7, 1.0)  # Light gray color for the grid
 var point_color = Color(0.3, 0.3, 0.3, 1.0)  # Dark gray color for the points
 var triangle_color = Color(0.9, 0.9, 0.9, 0.3)  # Light gray with opacity for triangle fill
@@ -88,7 +88,8 @@ func draw_diagonal_connection(start_point, end_point):
 	
 	# Calculate the visible endpoint so that the distance from it to the black circle
 	# is the same as the gap_distance calculated for horizontal sticks
-	var visible_distance = total_distance - gap_distance
+	# Also account for the radius of the black circle
+	var visible_distance = total_distance - gap_distance - intersection_radius
 	
 	# Ensure we don't try to draw a negative length line
 	if visible_distance <= 0:
@@ -230,25 +231,25 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 		# Store the stick endpoint for this row
 		stick_ends[row].append({"position": stick_end, "side": "right"})
 	
-	# Add the two diagonal sticks above the top point
 	# Calculate diagonal directions from top point
 	var top_left_dir = (grid_points[1][0] - triangle_top).normalized()
 	var top_right_dir = (grid_points[1][1] - triangle_top).normalized()
 	
-	# Draw diagonal sticks above top point
-	var top_stick_length = row_height * 1.7
+	# Calculate the positions for the two black circles above the top point
+	var top_row_height = row_height * 0.8  # Slightly shorter than regular row height
 	
-	# Left diagonal stick
-	var top_left_end = draw_diagonal_stick(triangle_top, -top_left_dir, top_stick_length)
+	# Calculate positions for the black circles
+	var top_left_black = triangle_top - top_left_dir * top_row_height
+	var top_right_black = triangle_top - top_right_dir * top_row_height
 	
-	# Right diagonal stick
-	var top_right_end = draw_diagonal_stick(triangle_top, -top_right_dir, top_stick_length)
+	# Draw the black circles
+	draw_intersection(top_left_black, true)
+	draw_intersection(top_right_black, true)
 	
-	# Store the top stick endpoints
-	stick_ends[0] = [
-		{"position": top_left_end, "side": "top_left"},
-		{"position": top_right_end, "side": "top_right"}
-	]
+	# Draw diagonal connections from the top point to the black circles
+	# Use the same gap_distance principle as for other connections
+	draw_diagonal_connection(triangle_top, top_left_black)
+	draw_diagonal_connection(triangle_top, top_right_black)
 	
 	# Now draw diagonal connections from outer grid points to black points in the layer above
 	for row in range(1, rows):  # Start from row 1 (second row) since row 0 has no layer above
