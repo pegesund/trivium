@@ -48,6 +48,25 @@ func draw_circle_arc(center, radius, angle_from, angle_to, color):
 	for index_point in range(nb_points):
 		draw_line(points_arc[index_point], points_arc[index_point + 1], color, 1)
 
+# Function to draw a line with a gap before reaching the endpoint
+func draw_line_with_gap(start_point, end_point, gap_distance, line_color, line_width):
+	var direction = (end_point - start_point).normalized()
+	var total_distance = start_point.distance_to(end_point)
+	
+	# Calculate the visible endpoint so that the distance from it to the end point
+	# is the same as the gap_distance
+	# Also account for the radius of the black circle
+	var visible_distance = total_distance - gap_distance - intersection_radius
+	
+	# Ensure we don't try to draw a negative length line
+	if visible_distance <= 0:
+		visible_distance = total_distance * 0.1  # Show at least a small portion
+	
+	var visible_end = start_point + direction * visible_distance
+	
+	# Draw the line
+	draw_line(start_point, visible_end, line_color, line_width)
+
 # Function to draw a horizontal stick
 func draw_horizontal_stick(start_point, direction, stick_length):
 	# Calculate the end point of the stick (horizontal)
@@ -61,9 +80,6 @@ func draw_horizontal_stick(start_point, direction, stick_length):
 	# This will be used for diagonal connections to ensure consistent gaps
 	gap_distance = stick_length * (1.0 - visible_line_ratio)
 	
-	# Draw the black point at the end
-	draw_intersection(stick_end, true)
-	
 	return stick_end
 
 # Function to draw a diagonal stick
@@ -75,30 +91,7 @@ func draw_diagonal_stick(start_point, direction, stick_length):
 	var visible_end = start_point + direction * stick_length * visible_line_ratio
 	draw_line(start_point, visible_end, grid_color, connection_width)
 	
-	# Draw the black point at the end
-	draw_intersection(stick_end, true)
-	
 	return stick_end
-
-# Function to draw a diagonal line from a point to a target black point
-# The visible endpoint will be at the same distance from the black circle as horizontal lines
-func draw_diagonal_connection(start_point, end_point):
-	var direction = (end_point - start_point).normalized()
-	var total_distance = start_point.distance_to(end_point)
-	
-	# Calculate the visible endpoint so that the distance from it to the black circle
-	# is the same as the gap_distance calculated for horizontal sticks
-	# Also account for the radius of the black circle
-	var visible_distance = total_distance - gap_distance - intersection_radius
-	
-	# Ensure we don't try to draw a negative length line
-	if visible_distance <= 0:
-		visible_distance = total_distance * 0.1  # Show at least a small portion
-	
-	var visible_end = start_point + direction * visible_distance
-	
-	# Draw the line
-	draw_line(start_point, visible_end, grid_color, connection_width)
 
 # Function to draw a triangle with a grid
 # x_size: width of the triangle
@@ -126,6 +119,7 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 	var rows = 6
 	var grid_points = []
 	var stick_ends = []  # To store all stick endpoints for diagonal connections
+	var all_intersections = []  # To store all intersection points (both inner and outer)
 	
 	# Calculate the height of each row
 	var row_height = y_size / (rows - 1)
@@ -155,8 +149,8 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 			# Add point to row
 			row_points.append(point)
 			
-			# Draw the intersection point
-			draw_intersection(point)
+			# Store the intersection point
+			all_intersections.append({"position": point, "is_outer": false})
 		
 		# Add row to grid
 		grid_points.append(row_points)
@@ -217,6 +211,9 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 		
 		# Store the stick endpoint for this row
 		stick_ends[row].append({"position": stick_end, "side": "left"})
+		
+		# Store the outer intersection point
+		all_intersections.append({"position": stick_end, "is_outer": true})
 	
 	# Add horizontal sticks to the right side of the triangle
 	for row in range(rows):  # Include all rows
@@ -230,6 +227,9 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 		
 		# Store the stick endpoint for this row
 		stick_ends[row].append({"position": stick_end, "side": "right"})
+		
+		# Store the outer intersection point
+		all_intersections.append({"position": stick_end, "is_outer": true})
 	
 	# Calculate diagonal directions from top point
 	var top_left_dir = (grid_points[1][0] - triangle_top).normalized()
@@ -242,14 +242,14 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 	var top_left_black = triangle_top - top_left_dir * top_row_height
 	var top_right_black = triangle_top - top_right_dir * top_row_height
 	
-	# Draw the black circles
-	draw_intersection(top_left_black, true)
-	draw_intersection(top_right_black, true)
+		# Store the black circles for later drawing
+	all_intersections.append({"position": top_left_black, "is_outer": true})
+	all_intersections.append({"position": top_right_black, "is_outer": true})
 	
 	# Draw diagonal connections from the top point to the black circles
 	# Use the same gap_distance principle as for other connections
-	draw_diagonal_connection(triangle_top, top_left_black)
-	draw_diagonal_connection(triangle_top, top_right_black)
+	draw_line_with_gap(triangle_top, top_left_black, gap_distance, grid_color, connection_width)
+	draw_line_with_gap(triangle_top, top_right_black, gap_distance, grid_color, connection_width)
 	
 	# Now draw diagonal connections from outer grid points to black points in the layer above
 	for row in range(1, rows):  # Start from row 1 (second row) since row 0 has no layer above
@@ -259,7 +259,7 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 			var above_left_stick = stick_ends[row-1][0]["position"]  # Left stick endpoint in row above
 			
 			# Draw diagonal connection
-			draw_diagonal_connection(left_point, above_left_stick)
+			draw_line_with_gap(left_point, above_left_stick, gap_distance, grid_color, connection_width)
 		
 		# Connect right edge points to the right stick endpoint in the row above
 		if row < rows - 1:  # Skip the bottom row for right edge
@@ -267,7 +267,7 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 			var above_right_stick = stick_ends[row-1][1]["position"]  # Right stick endpoint in row above
 			
 			# Draw diagonal connection
-			draw_diagonal_connection(right_point, above_right_stick)
+			draw_line_with_gap(right_point, above_right_stick, gap_distance, grid_color, connection_width)
 	
 	# Add diagonal connections from the bottom row's outer white points
 	var bottom_row = grid_points[rows-1]  # Get the bottom row
@@ -275,12 +275,16 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 	# Connect leftmost point in bottom row to the left stick endpoint in the row above
 	var bottom_left_point = bottom_row[0]
 	var above_left_stick = stick_ends[rows-2][0]["position"]
-	draw_diagonal_connection(bottom_left_point, above_left_stick)
+	draw_line_with_gap(bottom_left_point, above_left_stick, gap_distance, grid_color, connection_width)
 	
 	# Connect rightmost point in bottom row to the right stick endpoint in the row above
 	var bottom_right_point = bottom_row[bottom_row.size()-1]
 	var above_right_stick = stick_ends[rows-2][1]["position"]
-	draw_diagonal_connection(bottom_right_point, above_right_stick)
+	draw_line_with_gap(bottom_right_point, above_right_stick, gap_distance, grid_color, connection_width)
+	
+	# Draw all intersection points AFTER drawing all lines
+	for intersection in all_intersections:
+		draw_intersection(intersection["position"], intersection["is_outer"])
 
 func _draw():
 	# Get viewport dimensions to center the triangle
