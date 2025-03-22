@@ -74,6 +74,16 @@ func draw_diagonal_stick(start_point, direction, stick_length):
 	
 	return stick_end
 
+# Function to draw a diagonal line from a point to a target
+# Only 70% of the line is visible
+func draw_diagonal_connection(start_point, end_point):
+	var direction = (end_point - start_point).normalized()
+	var distance = start_point.distance_to(end_point)
+	var visible_end = start_point + direction * (distance * 0.7)
+	
+	# Draw the line (only 70% visible)
+	draw_line(start_point, visible_end, grid_color, connection_width)
+
 # Function to draw a triangle with a grid
 # x_size: width of the triangle
 # height_ratio: how much taller the triangle is compared to its width
@@ -99,6 +109,7 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 	# Create a triangular grid with 6 rows
 	var rows = 6
 	var grid_points = []
+	var stick_ends = []  # To store all stick endpoints for diagonal connections
 	
 	# Calculate the height of each row
 	var row_height = y_size / (rows - 1)
@@ -133,6 +144,9 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 		
 		# Add row to grid
 		grid_points.append(row_points)
+		
+		# Initialize stick_ends for this row
+		stick_ends.append([])
 	
 	# Draw horizontal connections
 	for row in range(rows):
@@ -183,7 +197,10 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 		var stick_length = col_width * 1.2
 		
 		var point = grid_points[row][0]  # Leftmost point in row
-		draw_horizontal_stick(point, -1, stick_length)  # -1 for left direction
+		var stick_end = draw_horizontal_stick(point, -1, stick_length)  # -1 for left direction
+		
+		# Store the stick endpoint for this row
+		stick_ends[row].append({"position": stick_end, "side": "left"})
 	
 	# Add horizontal sticks to the right side of the triangle
 	for row in range(rows):  # Include all rows
@@ -193,7 +210,10 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 		var stick_length = col_width * 1.2
 		
 		var point = grid_points[row][row]  # Rightmost point in row
-		draw_horizontal_stick(point, 1, stick_length)  # 1 for right direction
+		var stick_end = draw_horizontal_stick(point, 1, stick_length)  # 1 for right direction
+		
+		# Store the stick endpoint for this row
+		stick_ends[row].append({"position": stick_end, "side": "right"})
 	
 	# Add the two diagonal sticks above the top point
 	# Calculate diagonal directions from top point
@@ -204,10 +224,34 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 	var top_stick_length = row_height * 0.7
 	
 	# Left diagonal stick
-	draw_diagonal_stick(triangle_top, -top_left_dir, top_stick_length)
+	var top_left_end = draw_diagonal_stick(triangle_top, -top_left_dir, top_stick_length)
 	
 	# Right diagonal stick
-	draw_diagonal_stick(triangle_top, -top_right_dir, top_stick_length)
+	var top_right_end = draw_diagonal_stick(triangle_top, -top_right_dir, top_stick_length)
+	
+	# Store the top stick endpoints
+	stick_ends[0] = [
+		{"position": top_left_end, "side": "top_left"},
+		{"position": top_right_end, "side": "top_right"}
+	]
+	
+	# Now draw diagonal connections from outer grid points to black points in the layer above
+	for row in range(1, rows):  # Start from row 1 (second row) since row 0 has no layer above
+		# Connect left edge points to the left stick endpoint in the row above
+		if row < rows - 1:  # Skip the bottom row for left edge
+			var left_point = grid_points[row][0]  # Leftmost point in current row
+			var above_left_stick = stick_ends[row-1][0]["position"]  # Left stick endpoint in row above
+			
+			# Draw diagonal connection
+			draw_diagonal_connection(left_point, above_left_stick)
+		
+		# Connect right edge points to the right stick endpoint in the row above
+		if row < rows - 1:  # Skip the bottom row for right edge
+			var right_point = grid_points[row][row]  # Rightmost point in current row
+			var above_right_stick = stick_ends[row-1][1]["position"]  # Right stick endpoint in row above
+			
+			# Draw diagonal connection
+			draw_diagonal_connection(right_point, above_right_stick)
 
 func _draw():
 	# Get viewport dimensions to center the triangle
