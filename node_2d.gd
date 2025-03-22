@@ -3,13 +3,13 @@ extends Node2D
 # Triangle configuration
 var base_width = 200.0  # Base width of the triangle in pixels
 var scale_factor = 1.2  # Scale factor to adjust the overall size
-var height_to_width_ratio = 1.0  # How much taller the triangle is compared to its width (set to 1.8 as required)
+var height_to_width_ratio = 1.8  # How much taller the triangle is compared to its width (set to 1.8 as required)
 var grid_color = Color(0.7, 0.7, 0.7, 1.0)  # Light gray color for the grid
 var point_color = Color(0.3, 0.3, 0.3, 1.0)  # Dark gray color for the points
 var triangle_color = Color(0.9, 0.9, 0.9, 0.3)  # Light gray with opacity for triangle fill
 var intersection_fill_color = Color(1.0, 1.0, 1.0, 1.0)  # White color for intersection fill
 var intersection_radius = 5.0  # Radius of the intersection points (increased from 3.0)
-var connection_width = 1.5  # Width of the connection lines
+var connection_width = 2.0  # Width of the connection lines (increased from 1.5)
 var stick_extension_ratio = 1.0  # How far the sticks extend beyond the triangle (set to 1.0 as required)
 var outer_point_color = Color(0.0, 0.0, 0.0, 1.0)  # Black color for outer intersection points
 var visible_line_ratio = 0.7  # How much of the horizontal line is visible (70%)
@@ -48,6 +48,11 @@ func draw_circle_arc(center, radius, angle_from, angle_to, color):
 	for index_point in range(nb_points):
 		draw_line(points_arc[index_point], points_arc[index_point + 1], color, 1)
 
+# Function to draw a smooth line with antialiasing
+func draw_smooth_line(start_point, end_point, color, width):
+	# Use draw_line with antialiasing
+	draw_line(start_point, end_point, color, width, true)  # Last parameter enables antialiasing
+
 # Function to draw a line with a gap before reaching the endpoint
 func draw_line_with_gap(start_point, end_point, gap_distance, line_color, line_width):
 	var direction = (end_point - start_point).normalized()
@@ -64,17 +69,17 @@ func draw_line_with_gap(start_point, end_point, gap_distance, line_color, line_w
 	
 	var visible_end = start_point + direction * visible_distance
 	
-	# Draw the line
-	draw_line(start_point, visible_end, line_color, line_width)
+	# Draw the line with antialiasing
+	draw_smooth_line(start_point, visible_end, line_color, line_width)
 
 # Function to draw a horizontal stick
 func draw_horizontal_stick(start_point, direction, stick_length):
 	# Calculate the end point of the stick (horizontal)
 	var stick_end = Vector2(start_point.x + direction * stick_length, start_point.y)
 	
-	# Draw the horizontal line (only 70% visible)
+	# Draw the horizontal line (only 70% visible) with antialiasing
 	var visible_end = Vector2(start_point.x + direction * stick_length * visible_line_ratio, start_point.y)
-	draw_line(start_point, visible_end, grid_color, connection_width)
+	draw_smooth_line(start_point, visible_end, grid_color, connection_width)
 	
 	# Calculate the gap distance (distance from visible endpoint to black circle)
 	# This will be used for diagonal connections to ensure consistent gaps
@@ -87,9 +92,9 @@ func draw_diagonal_stick(start_point, direction, stick_length):
 	# Calculate the end point of the stick
 	var stick_end = start_point + direction * stick_length
 	
-	# Draw the diagonal line (only 70% visible)
+	# Draw the diagonal line (only 70% visible) with antialiasing
 	var visible_end = start_point + direction * stick_length * visible_line_ratio
-	draw_line(start_point, visible_end, grid_color, connection_width)
+	draw_smooth_line(start_point, visible_end, grid_color, connection_width)
 	
 	return stick_end
 
@@ -110,10 +115,10 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 	var triangle = PackedVector2Array([triangle_top, triangle_bottom_left, triangle_bottom_right])
 	draw_colored_polygon(triangle, triangle_color)
 	
-	# Draw the triangle outline
-	draw_line(triangle_top, triangle_bottom_left, grid_color, connection_width)
-	draw_line(triangle_bottom_left, triangle_bottom_right, grid_color, connection_width)
-	draw_line(triangle_bottom_right, triangle_top, grid_color, connection_width)
+	# Draw the triangle outline with antialiasing
+	draw_smooth_line(triangle_top, triangle_bottom_left, grid_color, connection_width)
+	draw_smooth_line(triangle_bottom_left, triangle_bottom_right, grid_color, connection_width)
+	draw_smooth_line(triangle_bottom_right, triangle_top, grid_color, connection_width)
 	
 	# Create a triangular grid with 6 rows
 	var rows = 6
@@ -166,8 +171,8 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 			var start = row_points[i]
 			var end = row_points[i + 1]
 			
-			# Draw the line
-			draw_line(start, end, grid_color, connection_width)
+			# Draw the line with antialiasing
+			draw_smooth_line(start, end, grid_color, connection_width)
 	
 	# Draw vertical connections
 	for row in range(rows - 1):
@@ -178,8 +183,8 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 			var start = upper_row[i]
 			var end = lower_row[i]
 			
-			# Draw the line
-			draw_line(start, end, grid_color, connection_width)
+			# Draw the line with antialiasing
+			draw_smooth_line(start, end, grid_color, connection_width)
 	
 	# Draw diagonal connections - only those that form proper triangles
 	# Each triangle is formed by:
@@ -196,8 +201,8 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 				var diagonal_start_point = upper_row[i]
 				var diagonal_end_point = lower_row[i + 1]
 				
-				# Draw the diagonal line from top to bottom-right
-				draw_line(diagonal_start_point, diagonal_end_point, grid_color, connection_width)
+				# Draw the diagonal line from top to bottom-right with antialiasing
+				draw_smooth_line(diagonal_start_point, diagonal_end_point, grid_color, connection_width)
 	
 	# Calculate the standard distance between points in the bottom row
 	# This will be used as the standard distance for horizontal sticks
