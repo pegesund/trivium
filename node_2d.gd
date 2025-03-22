@@ -199,15 +199,17 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 				# Draw the diagonal line from top to bottom-right
 				draw_line(diagonal_start_point, diagonal_end_point, grid_color, connection_width)
 	
+	# Calculate the standard distance between points in the bottom row
+	# This will be used as the standard distance for horizontal sticks
+	var bottom_row = grid_points[rows-1]
+	var standard_distance = 0.0
+	if bottom_row.size() > 1:
+		standard_distance = bottom_row[1].x - bottom_row[0].x
+	
 	# Add horizontal sticks to the left side of the triangle
 	for row in range(rows):  # Include all rows
-		var points_in_row = row + 1  # Row 0 has 1 point, row 5 has 6 points
-		var row_width = x_size * row / (rows - 1)
-		var col_width = row_width / (points_in_row - 1) if points_in_row > 1 else 0
-		var stick_length = col_width * 1.5
-		
 		var point = grid_points[row][0]  # Leftmost point in row
-		var stick_end = draw_horizontal_stick(point, -1, stick_length)  # -1 for left direction
+		var stick_end = draw_horizontal_stick(point, -1, standard_distance)  # Use standard distance
 		
 		# Store the stick endpoint for this row
 		stick_ends[row].append({"position": stick_end, "side": "left"})
@@ -217,13 +219,8 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 	
 	# Add horizontal sticks to the right side of the triangle
 	for row in range(rows):  # Include all rows
-		var points_in_row = row + 1  # Row 0 has 1 point, row 5 has 6 points
-		var row_width = x_size * row / (rows - 1)
-		var col_width = row_width / (points_in_row - 1) if points_in_row > 1 else 0
-		var stick_length = col_width * 1.5
-		
 		var point = grid_points[row][row]  # Rightmost point in row
-		var stick_end = draw_horizontal_stick(point, 1, stick_length)  # 1 for right direction
+		var stick_end = draw_horizontal_stick(point, 1, standard_distance)  # Use standard distance
 		
 		# Store the stick endpoint for this row
 		stick_ends[row].append({"position": stick_end, "side": "right"})
@@ -236,13 +233,11 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 	var top_right_dir = (grid_points[1][1] - triangle_top).normalized()
 	
 	# Calculate the positions for the two black circles above the top point
-	var top_row_height = row_height * 0.8  # Slightly shorter than regular row height
+	# Use the same standard distance for consistency
+	var top_left_black = triangle_top - top_left_dir * standard_distance
+	var top_right_black = triangle_top - top_right_dir * standard_distance
 	
-	# Calculate positions for the black circles
-	var top_left_black = triangle_top - top_left_dir * top_row_height
-	var top_right_black = triangle_top - top_right_dir * top_row_height
-	
-		# Store the black circles for later drawing
+	# Store the black circles for later drawing
 	all_intersections.append({"position": top_left_black, "is_outer": true})
 	all_intersections.append({"position": top_right_black, "is_outer": true})
 	
@@ -270,9 +265,6 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 			draw_line_with_gap(right_point, above_right_stick, gap_distance, grid_color, connection_width)
 	
 	# Add diagonal connections from the bottom row's outer white points
-	var bottom_row = grid_points[rows-1]  # Get the bottom row
-	
-	# Connect leftmost point in bottom row to the left stick endpoint in the row above
 	var bottom_left_point = bottom_row[0]
 	var above_left_stick = stick_ends[rows-2][0]["position"]
 	draw_line_with_gap(bottom_left_point, above_left_stick, gap_distance, grid_color, connection_width)
