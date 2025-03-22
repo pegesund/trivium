@@ -10,8 +10,10 @@ var triangle_color = Color(0.9, 0.9, 0.9, 0.3)  # Light gray with opacity for tr
 var intersection_fill_color = Color(1.0, 1.0, 1.0, 1.0)  # White color for intersection fill
 var intersection_radius = 5.0  # Radius of the intersection points (increased from 3.0)
 var connection_width = 1.5  # Width of the connection lines
-var stick_extension_ratio = 0.7  # How far the sticks extend beyond the triangle (70% of original line length)
+var stick_extension_ratio = 1.0  # How far the sticks extend beyond the triangle (set to 1.0 as required)
 var outer_point_color = Color(0.0, 0.0, 0.0, 1.0)  # Black color for outer intersection points
+var visible_line_ratio = 0.7  # How much of the horizontal line is visible (70%)
+var gap_distance = 0.0  # Distance from visible endpoint to black circle (will be calculated)
 
 func _ready():
 	# Draw once at startup
@@ -52,8 +54,12 @@ func draw_horizontal_stick(start_point, direction, stick_length):
 	var stick_end = Vector2(start_point.x + direction * stick_length, start_point.y)
 	
 	# Draw the horizontal line (only 70% visible)
-	var visible_end = Vector2(start_point.x + direction * stick_length * 0.7, start_point.y)
+	var visible_end = Vector2(start_point.x + direction * stick_length * visible_line_ratio, start_point.y)
 	draw_line(start_point, visible_end, grid_color, connection_width)
+	
+	# Calculate the gap distance (distance from visible endpoint to black circle)
+	# This will be used for diagonal connections to ensure consistent gaps
+	gap_distance = stick_length * (1.0 - visible_line_ratio)
 	
 	# Draw the black point at the end
 	draw_intersection(stick_end, true)
@@ -66,7 +72,7 @@ func draw_diagonal_stick(start_point, direction, stick_length):
 	var stick_end = start_point + direction * stick_length
 	
 	# Draw the diagonal line (only 70% visible)
-	var visible_end = start_point + direction * stick_length * 0.7
+	var visible_end = start_point + direction * stick_length * visible_line_ratio
 	draw_line(start_point, visible_end, grid_color, connection_width)
 	
 	# Draw the black point at the end
@@ -74,14 +80,23 @@ func draw_diagonal_stick(start_point, direction, stick_length):
 	
 	return stick_end
 
-# Function to draw a diagonal line from a point to a target
-# Only 70% of the line is visible
+# Function to draw a diagonal line from a point to a target black point
+# The visible endpoint will be at the same distance from the black circle as horizontal lines
 func draw_diagonal_connection(start_point, end_point):
 	var direction = (end_point - start_point).normalized()
-	var distance = start_point.distance_to(end_point)
-	var visible_end = start_point + direction * (distance * 0.7)
+	var total_distance = start_point.distance_to(end_point)
 	
-	# Draw the line (only 70% visible)
+	# Calculate the visible endpoint so that the distance from it to the black circle
+	# is the same as the gap_distance calculated for horizontal sticks
+	var visible_distance = total_distance - gap_distance
+	
+	# Ensure we don't try to draw a negative length line
+	if visible_distance <= 0:
+		visible_distance = total_distance * 0.1  # Show at least a small portion
+	
+	var visible_end = start_point + direction * visible_distance
+	
+	# Draw the line
 	draw_line(start_point, visible_end, grid_color, connection_width)
 
 # Function to draw a triangle with a grid
@@ -194,7 +209,7 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 		var points_in_row = row + 1  # Row 0 has 1 point, row 5 has 6 points
 		var row_width = x_size * row / (rows - 1)
 		var col_width = row_width / (points_in_row - 1) if points_in_row > 1 else 0
-		var stick_length = col_width * 1.2
+		var stick_length = col_width * 1.5
 		
 		var point = grid_points[row][0]  # Leftmost point in row
 		var stick_end = draw_horizontal_stick(point, -1, stick_length)  # -1 for left direction
@@ -207,7 +222,7 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 		var points_in_row = row + 1  # Row 0 has 1 point, row 5 has 6 points
 		var row_width = x_size * row / (rows - 1)
 		var col_width = row_width / (points_in_row - 1) if points_in_row > 1 else 0
-		var stick_length = col_width * 1.2
+		var stick_length = col_width * 1.5
 		
 		var point = grid_points[row][row]  # Rightmost point in row
 		var stick_end = draw_horizontal_stick(point, 1, stick_length)  # 1 for right direction
@@ -221,7 +236,7 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 	var top_right_dir = (grid_points[1][1] - triangle_top).normalized()
 	
 	# Draw diagonal sticks above top point
-	var top_stick_length = row_height * 0.7
+	var top_stick_length = row_height * 1.7
 	
 	# Left diagonal stick
 	var top_left_end = draw_diagonal_stick(triangle_top, -top_left_dir, top_stick_length)
