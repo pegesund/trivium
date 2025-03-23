@@ -2,11 +2,12 @@ extends Node2D
 
 # Triangle configuration
 var base_width = 200.0  # Base width of the triangle in pixels
-var scale_factor = 1.2  # Scale factor to adjust the overall size
+var scale_factor = 1.5  # Scale factor to adjust the overall size (increase for larger triangle)
 var height_to_width_ratio = 1  # How much taller the triangle is compared to its width (set to 1.8 as required)
 var grid_color = Color(0.0, 0.0, 0.0, 1.0)  # Black color for the grid lines
 var point_color = Color(0.3, 0.3, 0.3, 1.0)  # Dark gray color for the points
-var background_color = Color(0.9, 0.9, 0.9, 1.0)  # Light gray for background
+var background_color_top = Color(0.87, 0.87, 0.89, 1.0)  # Very light blue-gray for top gradient
+var background_color_bottom = Color(0.82, 0.82, 0.85, 1.0)  # Slightly darker blue-gray for bottom gradient
 var intersection_fill_color = Color(1.0, 1.0, 1.0, 1.0)  # White color for intersection fill
 var intersection_radius = 5.0  # Radius of the intersection points
 var connection_width = 2.0  # Width of the connection lines
@@ -15,13 +16,43 @@ var outer_point_color = Color(0.0, 0.0, 0.0, 1.0)  # Black color for outer inter
 var visible_line_ratio = 0.7  # How much of the horizontal line is visible (70%)
 var gap_distance = 0.0  # Distance from visible endpoint to black circle (will be calculated)
 
+# Position and size controls
+var position_x_offset = 0.0  # Horizontal offset from center (positive = right, negative = left)
+var position_y_offset = 0.0  # Vertical offset (positive = down, negative = up)
+var vertical_position_ratio = 0.5  # Position from top (0.0 = top, 0.5 = middle, 1.0 = bottom)
+
+# Background effects
+var noise = FastNoiseLite.new()
+var time = 0.0
+var subtle_movement = false  # Disabled animation by default
+var animation_speed = 0.01  # Further reduced from 0.02
+var redraw_interval = 1.0  # Only redraw every second (increased from 0.5)
+var time_since_last_redraw = 0.0
+
 func _ready():
+	# Initialize noise for background
+	noise.seed = randi()
+	noise.noise_type = FastNoiseLite.TYPE_PERLIN
+	noise.fractal_type = FastNoiseLite.FRACTAL_FBM
+	noise.frequency = 0.001  # Further reduced from 0.002 for even smoother noise
+	noise.fractal_octaves = 2  # Further reduced from 3 for even less detail/flickering
+	noise.fractal_lacunarity = 1.5  # Further reduced from 1.8
+	noise.fractal_gain = 0.3  # Further reduced from 0.4
+	
 	# Draw once at startup
 	queue_redraw()
 
-func _process(_delta):
-	# No continuous redraw
-	pass
+func _process(delta):
+	if subtle_movement:
+		time_since_last_redraw += delta
+		time += delta * animation_speed  # Much slower movement
+		
+		# Only redraw occasionally to reduce flickering
+		if time_since_last_redraw >= redraw_interval:
+			noise.offset.x = time * 2.0  # Further reduced from 5.0
+			noise.offset.y = time * 1.0  # Further reduced from 2.0
+			queue_redraw()
+			time_since_last_redraw = 0.0
 
 # Function to draw an intersection point
 # position: Vector2 position of the intersection
@@ -97,6 +128,45 @@ func draw_diagonal_stick(start_point, direction, stick_length):
 	draw_smooth_line(start_point, visible_end, grid_color, connection_width)
 	
 	return stick_end
+
+# Draw a cool background with gradient and noise
+func draw_cool_background(viewport_size):
+	# Draw gradient background
+	var gradient_rect = Rect2(0, 0, viewport_size.x, viewport_size.y)
+	draw_rect(gradient_rect, background_color_top)
+	
+	# Create a very subtle gradient from top to bottom
+	var gradient_points = 30  # Further reduced from 50 for better performance
+	for i in range(gradient_points):
+		var t = float(i) / gradient_points
+		var y = viewport_size.y * t
+		var color = background_color_top.lerp(background_color_bottom, t)
+		var rect = Rect2(0, y, viewport_size.x, viewport_size.y / gradient_points + 1)
+		draw_rect(rect, color)
+	
+	# Add extremely subtle noise texture overlay
+	for x in range(0, int(viewport_size.x), 16):  # Further increased sampling interval from 8 to 16 pixels
+		for y in range(0, int(viewport_size.y), 16):  # Further increased sampling interval for better performance
+			var noise_val = noise.get_noise_2d(x, y)
+			if noise_val > 0.2:  # Only draw the brightest spots (threshold increased from 0.0 to 0.2)
+				var alpha = noise_val * 0.04  # Further reduced from 0.08 for extremely subtle effect
+				var noise_color = Color(1, 1, 1, alpha)
+				draw_rect(Rect2(x, y, 16, 16), noise_color)  # Larger rectangles (16x16 instead of 8x8)
+	
+	# Add just one or two extremely subtle glows
+	var num_glows = 2  # Further reduced from 3
+	for i in range(num_glows):
+		var glow_x = viewport_size.x * (0.3 + 0.4 * randf())  # More centered
+		var glow_y = viewport_size.y * (0.3 + 0.4 * randf())  # More centered
+		var glow_size = viewport_size.y * (0.3 + 0.2 * randf())
+		var glow_alpha = 0.01 + 0.01 * randf()  # Further reduced from 0.02-0.05 to 0.01-0.02
+		
+		# Draw multiple circles with decreasing opacity for a glow effect
+		for j in range(5):  # Further reduced from 8
+			var radius = glow_size * (1.0 - j/5.0)
+			var alpha = glow_alpha * (1.0 - j/5.0)
+			var glow_color = Color(1, 1, 1, alpha)
+			draw_circle(Vector2(glow_x, glow_y), radius, glow_color)
 
 # Function to draw a triangle with a grid
 # x_size: width of the triangle
@@ -282,11 +352,13 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 func _draw():
 	# Get viewport dimensions to center the triangle
 	var viewport_size = get_viewport_rect().size
-	var center_x = viewport_size.x / 2
-	var center_y = viewport_size.y / 5  # Position it higher on the screen (1/5 instead of 1/4)
 	
-	# Draw background
-	draw_rect(Rect2(0, 0, viewport_size.x, viewport_size.y), background_color)
+	# Calculate center position with offsets
+	var center_x = viewport_size.x / 2 + position_x_offset
+	var center_y = viewport_size.y * vertical_position_ratio + position_y_offset
+	
+	# Draw cool background
+	draw_cool_background(viewport_size)
 	
 	# Calculate the actual width using the scale factor
 	var scaled_width = base_width * scale_factor
