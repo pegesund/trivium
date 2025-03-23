@@ -12,28 +12,23 @@ func _ready():
 	
 	# Create pits at all white circle positions
 	create_pits_at_all_grid_points()
-	
-	# Create a blue marble at the center of the screen
-	# create_marble("blue", center_position)  # Commented out as we'll place marbles on pits
 
 # Function to create pits at all white circle positions in the background
 func create_pits_at_all_grid_points():
 	# Get the Background node to access its grid
 	var background = get_node("../Background")
 	
-	# Check if we can get intersection points from the background
-	if background and background.has_method("get_all_intersection_points"):
-		# Get all intersection points
-		var all_intersections = background.get_all_intersection_points()
-		
-		# Create pits at all inner intersection points (white circles)
-		for intersection in all_intersections:
-			if not intersection["is_outer"]:  # Only create pits at inner points (white circles)
-				create_pit(intersection["position"])
-				
-				# Place a marble on top of the pit at the top position
-				if intersection["position"].y == background.get_grid_point_position(0, 0).y:
-					create_marble("blue", intersection["position"])
+	# Get all intersection points
+	var all_intersections = background.get_all_intersection_points()
+	
+	# Create pits at all inner intersection points (white circles)
+	for intersection in all_intersections:
+		if not intersection["is_outer"]:  # Only create pits at inner points (white circles)
+			create_pit(intersection["position"])
+			
+			# Place a marble on top of the pit at the top position
+			if intersection["position"].y == background.get_grid_point_position(0, 0).y:
+				create_marble("blue", intersection["position"])
 
 # Function to create a pit at a specific position
 func create_pit(position):
