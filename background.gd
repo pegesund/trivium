@@ -262,7 +262,7 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 	for row in range(rows - 1):
 		var upper_row = grid_points[row]
 		var lower_row = grid_points[row + 1]
-		
+        
 		for i in range(upper_row.size()):
 			# Only draw if we have a point to the right in the lower row
 			if i + 1 < lower_row.size():
@@ -278,7 +278,7 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 	var standard_distance = 0.0
 	if bottom_row.size() > 1:
 		standard_distance = bottom_row[1].x - bottom_row[0].x
-	
+    
 	# Add horizontal sticks to the left side of the triangle
 	for row in range(rows):  # Include all rows
 		if row > 0:  # Skip the top level (row 0)
@@ -315,7 +315,7 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 	
 	# Draw white circle at the top point (row 0)
 	draw_intersection(triangle_top, false)  # Changed to false to make it white
-	
+    
 	# Draw black circles for all points in row 1
 	if grid_points.size() > 1:
 		for point in grid_points[1]:
@@ -327,14 +327,22 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 		var horizontal_distance = 0.0
 		if grid_points[1].size() > 1:
 			horizontal_distance = grid_points[1][1].x - grid_points[1][0].x
-		
+        
 		# Create left black circle
 		var left_black_circle = Vector2(triangle_top.x - horizontal_distance, triangle_top.y)
 		draw_intersection(left_black_circle, true)
-		
+        
 		# Create right black circle
 		var right_black_circle = Vector2(triangle_top.x + horizontal_distance, triangle_top.y)
 		draw_intersection(right_black_circle, true)
+		
+		# Add diagonal connections from the black circles to row 1 points
+		if grid_points[1].size() > 0:
+			# Connect left black circle to leftmost point in row 1
+			draw_line_with_gap(grid_points[1][0], left_black_circle, gap_dist_global, grid_color, connection_width)
+			
+			# Connect right black circle to rightmost point in row 1
+			draw_line_with_gap(grid_points[1][grid_points[1].size()-1], right_black_circle, gap_dist_global, grid_color, connection_width)
 	
 	# Now draw diagonal connections from outer grid points to the top point
 	for row in range(1, rows):  # Start from row 1 (second row) since row 0 has no layer above
@@ -350,15 +358,36 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 			if grid_points[row].size() > 2:  # Make sure there's a middle point
 				var middle_point = grid_points[row][1]  # Middle point in row 1
 				draw_line_with_gap(middle_point, triangle_top, gap_dist_global, grid_color, connection_width)
+            
+			# Add diagonal connections from row 1 points to the stick endpoints at the same level
+			if stick_ends[row][0]["position"] != Vector2.ZERO:  # Left stick endpoint
+				draw_line_with_gap(left_point, stick_ends[row][0]["position"], gap_dist_global, grid_color, connection_width)
+            
+			if stick_ends[row][1]["position"] != Vector2.ZERO:  # Right stick endpoint
+				draw_line_with_gap(right_point, stick_ends[row][1]["position"], gap_dist_global, grid_color, connection_width)
 		elif row == 2:  # For row 2, connect to the points in row 1
 			# Connect each point in row 2 to the corresponding points in row 1
 			for i in range(grid_points[row].size()):
 				var current_point = grid_points[row][i]
-                
+				
 				# Connect to the point directly above (if exists)
 				if i < grid_points[row-1].size():
 					var above_point = grid_points[row-1][i]
 					draw_line_with_gap(current_point, above_point, gap_dist_global, grid_color, connection_width)
+			
+			# Connect left edge points to the left stick endpoint in the row above
+			var left_point = grid_points[row][0]  # Leftmost point in row 2
+			var above_left_stick = stick_ends[row-1][0]["position"]  # Left stick endpoint in row above
+			
+			# Draw diagonal connection
+			draw_line_with_gap(left_point, above_left_stick, gap_dist_global, grid_color, connection_width)
+			
+			# Connect right edge points to the right stick endpoint in the row above
+			var right_point = grid_points[row][row]  # Rightmost point in row 2
+			var above_right_stick = stick_ends[row-1][1]["position"]  # Right stick endpoint in row above
+			
+			# Draw diagonal connection
+			draw_line_with_gap(right_point, above_right_stick, gap_dist_global, grid_color, connection_width)
 		else:
 			# For rows 3 and below, connect to the stick endpoints in the row above
 			# Connect left edge points to the left stick endpoint in the row above
@@ -384,17 +413,17 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 func _draw():
 	# Get viewport dimensions to center the triangle
 	var viewport_size = get_viewport_rect().size
-	
+    
 	# Calculate center position with offsets
 	var center_x = viewport_size.x / 2 + position_x_offset
 	var center_y = viewport_size.y * vertical_position_ratio + position_y_offset
-	
+    
 	# Draw cool background
 	draw_cool_background(viewport_size)
-	
+    
 	# Calculate the actual width using the scale factor
 	var scaled_width = base_width * scale_factor
-	
+    
 	# Draw the triangle in the middle of the screen
 	draw_triangle(scaled_width, height_to_width_ratio, center_x, center_y)
 
@@ -405,39 +434,39 @@ func get_grid_point_position(grid_x, grid_y):
 	var viewport_size = get_viewport_rect().size
 	var center_x = viewport_size.x / 2 + position_x_offset
 	var center_y = viewport_size.y * vertical_position_ratio + position_y_offset
-	
+    
 	# Calculate the actual width using the scale factor
 	var scaled_width = base_width * scale_factor
 	var y_size = scaled_width * height_to_width_ratio
-	
+    
 	# Calculate the height of each row
 	var rows = 6
 	var row_height = y_size / (rows - 1)
-	
+    
 	# Make sure grid_y is within bounds
 	if grid_y < 0 or grid_y >= rows:
 		return Vector2.ZERO
-	
+    
 	# Calculate row width (proportional to row index)
 	var row_width = scaled_width * grid_y / (rows - 1)
-	
+    
 	# Calculate number of points in this row
 	var points_in_row = grid_y + 1
-	
+    
 	# Make sure grid_x is within bounds
 	if grid_x < 0 or grid_x >= points_in_row:
 		return Vector2.ZERO
-	
+    
 	# Calculate horizontal spacing
 	var col_width = 0
 	if points_in_row > 1:
 		col_width = row_width / (points_in_row - 1)
-	
+    
 	# Calculate position
 	var start_x = center_x - row_width / 2
 	var current_y = center_y + grid_y * row_height
 	var point_x = start_x + grid_x * col_width
-	
+    
 	return Vector2(point_x, current_y)
 
 # Function to get all intersection points (both inner and outer)
@@ -447,10 +476,10 @@ func get_all_intersection_points():
 	var viewport_size = get_viewport_rect().size
 	var center_x = viewport_size.x / 2 + position_x_offset
 	var center_y = viewport_size.y * vertical_position_ratio + position_y_offset
-	
+    
 	# Calculate the actual width using the scale factor
 	var scaled_width = base_width * scale_factor
-	
+    
 	# Call draw_triangle but only to collect intersection points without drawing
 	return _collect_intersection_points(scaled_width, height_to_width_ratio, center_x, center_y)
 
@@ -458,36 +487,36 @@ func get_all_intersection_points():
 func _collect_intersection_points(x_size, height_ratio, x_pos, y_pos):
 	# Calculate height based on the ratio
 	var y_size = x_size * height_ratio
-	
+    
 	# Calculate the three points of the triangle
 	var triangle_top = Vector2(x_pos, y_pos)
-	
+    
 	# Create a triangular grid with 6 rows
 	var rows = 6
 	var grid_points = []
 	var stick_ends = []  # To store all stick endpoints for diagonal connections
 	var all_intersections = []  # To store all intersection points (both inner and outer)
-	
+    
 	# Calculate the height of each row
 	var row_height = y_size / (rows - 1)
-	
+    
 	# Generate points for each row
 	for row in range(rows):
 		var points_in_row = row + 1  # Row 0 has 1 point, row 5 has 6 points
 		var row_points = []
-		
+        
 		# Calculate row width (proportional to row index)
 		var row_width = x_size * row / (rows - 1)
-		
+        
 		# Calculate horizontal spacing
 		var col_width = 0
 		if points_in_row > 1:  # Avoid division by zero
 			col_width = row_width / (points_in_row - 1)
-		
+        
 		# Calculate row start position
 		var start_x = x_pos - row_width / 2
 		var current_y = y_pos + row * row_height
-		
+        
 		# Create points for this row
 		for col in range(points_in_row):
 			var point_x = start_x + col * col_width
@@ -498,20 +527,20 @@ func _collect_intersection_points(x_size, height_ratio, x_pos, y_pos):
             
 			# Store the intersection point
 			all_intersections.append({"position": point, "is_outer": false})
-		
+        
 		# Add row to grid
 		grid_points.append(row_points)
-		
+        
 		# Initialize stick_ends for this row
 		stick_ends.append([])
-	
+    
 	# Calculate the standard distance between points in the bottom row
 	# This will be used as the standard distance for horizontal sticks
 	var bottom_row = grid_points[rows-1]
 	var standard_distance = 0.0
 	if bottom_row.size() > 1:
 		standard_distance = bottom_row[1].x - bottom_row[0].x
-	
+    
 	# Add horizontal sticks to the left side of the triangle
 	for row in range(rows):  # Include all rows
 		if row > 0:  # Skip the top level (row 0)
@@ -526,7 +555,7 @@ func _collect_intersection_points(x_size, height_ratio, x_pos, y_pos):
 		else:
 			# Add empty placeholder for the top row to maintain indexing
 			stick_ends[row].append({"position": Vector2.ZERO, "side": "left"})
-	
+    
 	# Add horizontal sticks to the right side of the triangle
 	for row in range(rows):  # Include all rows
 		if row > 0:  # Skip the top level (row 0)
@@ -541,7 +570,7 @@ func _collect_intersection_points(x_size, height_ratio, x_pos, y_pos):
 		else:
 			# Add empty placeholder for the top row to maintain indexing
 			stick_ends[row].append({"position": Vector2.ZERO, "side": "right"})
-	
+    
 	# Now draw diagonal connections from outer grid points to the top point
 	for row in range(1, rows):  # Start from row 1 (second row) since row 0 has no layer above
 		# For row 1, we connect to the top point instead of black circles
@@ -556,5 +585,5 @@ func _collect_intersection_points(x_size, height_ratio, x_pos, y_pos):
 		if grid_points[row].size() > 2:  # Make sure there's a middle point
 			var middle_point = grid_points[row][1]  # Middle point in row 1
 			all_intersections.append({"position": middle_point, "is_outer": false})
-	
+    
 	return all_intersections
