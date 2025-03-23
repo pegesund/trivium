@@ -3,13 +3,13 @@ extends Node2D
 # Triangle configuration
 var base_width = 200.0  # Base width of the triangle in pixels
 var scale_factor = 1.2  # Scale factor to adjust the overall size
-var height_to_width_ratio = 1.8  # How much taller the triangle is compared to its width (set to 1.8 as required)
-var grid_color = Color(0.7, 0.7, 0.7, 1.0)  # Light gray color for the grid
+var height_to_width_ratio = 1  # How much taller the triangle is compared to its width (set to 1.8 as required)
+var grid_color = Color(0.0, 0.0, 0.0, 1.0)  # Black color for the grid lines
 var point_color = Color(0.3, 0.3, 0.3, 1.0)  # Dark gray color for the points
-var triangle_color = Color(0.9, 0.9, 0.9, 0.3)  # Light gray with opacity for triangle fill
+var background_color = Color(0.9, 0.9, 0.9, 1.0)  # Light gray for background
 var intersection_fill_color = Color(1.0, 1.0, 1.0, 1.0)  # White color for intersection fill
-var intersection_radius = 5.0  # Radius of the intersection points (increased from 3.0)
-var connection_width = 2.0  # Width of the connection lines (increased from 1.5)
+var intersection_radius = 5.0  # Radius of the intersection points
+var connection_width = 2.0  # Width of the connection lines
 var stick_extension_ratio = 1.0  # How far the sticks extend beyond the triangle (set to 1.0 as required)
 var outer_point_color = Color(0.0, 0.0, 0.0, 1.0)  # Black color for outer intersection points
 var visible_line_ratio = 0.7  # How much of the horizontal line is visible (70%)
@@ -111,11 +111,7 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 	var triangle_bottom_left = Vector2(x_pos - x_size/2, y_pos + y_size)
 	var triangle_bottom_right = Vector2(x_pos + x_size/2, y_pos + y_size)
 	
-	# Draw the filled triangle
-	var triangle = PackedVector2Array([triangle_top, triangle_bottom_left, triangle_bottom_right])
-	draw_colored_polygon(triangle, triangle_color)
-	
-	# Draw the triangle outline with antialiasing
+	# Draw the triangle outline with antialiasing (no fill)
 	draw_smooth_line(triangle_top, triangle_bottom_left, grid_color, connection_width)
 	draw_smooth_line(triangle_bottom_left, triangle_bottom_right, grid_color, connection_width)
 	draw_smooth_line(triangle_bottom_right, triangle_top, grid_color, connection_width)
@@ -288,6 +284,9 @@ func _draw():
 	var viewport_size = get_viewport_rect().size
 	var center_x = viewport_size.x / 2
 	var center_y = viewport_size.y / 5  # Position it higher on the screen (1/5 instead of 1/4)
+	
+	# Draw background
+	draw_rect(Rect2(0, 0, viewport_size.x, viewport_size.y), background_color)
 	
 	# Calculate the actual width using the scale factor
 	var scaled_width = base_width * scale_factor
