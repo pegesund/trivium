@@ -66,6 +66,30 @@ func draw_intersection(pos, is_outer = false):
 		draw_circle(pos, intersection_radius, intersection_fill_color)
 		# Draw circle outline
 		draw_circle_arc(pos, intersection_radius, 0, 360, point_color)
+		
+		# Draw two black circles above the white circle
+		# Calculate the distance between white circles (use standard_distance)
+		var viewport_size = get_viewport_rect().size
+		var center_x = viewport_size.x / 2 + position_x_offset
+		var center_y = viewport_size.y * vertical_position_ratio + position_y_offset
+		var scaled_width = base_width * scale_factor
+		var y_size = scaled_width * height_to_width_ratio
+		var rows = 6
+		var row_height = y_size / (rows - 1)  # Distance between rows
+		var bottom_row_distance = scaled_width / 5.0  # Distance between points in bottom row (6 points)
+		
+		# Calculate vertical offset for the black circles (same as row height)
+		var vertical_offset = row_height
+		
+		# Calculate horizontal offset for the black circles
+		# The distance between the two black circles should equal the distance between white circles
+		var horizontal_offset = bottom_row_distance / 2.0
+		
+		# Draw the two black circles
+		draw_circle(Vector2(pos.x - horizontal_offset, pos.y - vertical_offset), 
+			intersection_radius, outer_point_color)
+		draw_circle(Vector2(pos.x + horizontal_offset, pos.y - vertical_offset), 
+			intersection_radius, outer_point_color)
 
 # Helper function to draw circle outline
 func draw_circle_arc(center, radius, angle_from, angle_to, color):
