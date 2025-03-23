@@ -14,7 +14,7 @@ var connection_width = 2.0  # Width of the connection lines
 var stick_extension_ratio = 1.0  # How far the sticks extend beyond the triangle (set to 1.0 as required)
 var outer_point_color = Color(0.0, 0.0, 0.0, 1.0)  # Black color for outer intersection points
 var visible_line_ratio = 0.7  # How much of the horizontal line is visible (70%)
-var gap_distance = 0.0  # Distance from visible endpoint to black circle (will be calculated)
+var gap_dist_global = 0.0  # Distance from visible endpoint to black circle (will be calculated)
 
 # Position and size controls
 var position_x_offset = 0.0  # Horizontal offset from center (positive = right, negative = left)
@@ -55,17 +55,17 @@ func _process(delta):
 			time_since_last_redraw = 0.0
 
 # Function to draw an intersection point
-# position: Vector2 position of the intersection
+# pos: Vector2 position of the intersection
 # is_outer: whether this is an outer point (at the end of a stick)
-func draw_intersection(position, is_outer = false):
+func draw_intersection(pos, is_outer = false):
 	if is_outer:
 		# Draw filled black circle for outer points
-		draw_circle(position, intersection_radius, outer_point_color)
+		draw_circle(pos, intersection_radius, outer_point_color)
 	else:
 		# Draw filled white circle
-		draw_circle(position, intersection_radius, intersection_fill_color)
+		draw_circle(pos, intersection_radius, intersection_fill_color)
 		# Draw circle outline
-		draw_circle_arc(position, intersection_radius, 0, 360, point_color)
+		draw_circle_arc(pos, intersection_radius, 0, 360, point_color)
 
 # Helper function to draw circle outline
 func draw_circle_arc(center, radius, angle_from, angle_to, color):
@@ -114,7 +114,7 @@ func draw_horizontal_stick(start_point, direction, stick_length):
 	
 	# Calculate the gap distance (distance from visible endpoint to black circle)
 	# This will be used for diagonal connections to ensure consistent gaps
-	gap_distance = stick_length * (1.0 - visible_line_ratio)
+	gap_dist_global = stick_length * (1.0 - visible_line_ratio)
 	
 	return stick_end
 
@@ -314,8 +314,8 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 	
 	# Draw diagonal connections from the top point to the black circles
 	# Use the same gap_distance principle as for other connections
-	draw_line_with_gap(triangle_top, top_left_black, gap_distance, grid_color, connection_width)
-	draw_line_with_gap(triangle_top, top_right_black, gap_distance, grid_color, connection_width)
+	draw_line_with_gap(triangle_top, top_left_black, gap_dist_global, grid_color, connection_width)
+	draw_line_with_gap(triangle_top, top_right_black, gap_dist_global, grid_color, connection_width)
 	
 	# Now draw diagonal connections from outer grid points to black points in the layer above
 	for row in range(1, rows):  # Start from row 1 (second row) since row 0 has no layer above
@@ -325,7 +325,7 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 			var above_left_stick = stick_ends[row-1][0]["position"]  # Left stick endpoint in row above
 			
 			# Draw diagonal connection
-			draw_line_with_gap(left_point, above_left_stick, gap_distance, grid_color, connection_width)
+			draw_line_with_gap(left_point, above_left_stick, gap_dist_global, grid_color, connection_width)
 		
 		# Connect right edge points to the right stick endpoint in the row above
 		if row < rows - 1:  # Skip the bottom row for right edge
@@ -333,17 +333,17 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 			var above_right_stick = stick_ends[row-1][1]["position"]  # Right stick endpoint in row above
 			
 			# Draw diagonal connection
-			draw_line_with_gap(right_point, above_right_stick, gap_distance, grid_color, connection_width)
+			draw_line_with_gap(right_point, above_right_stick, gap_dist_global, grid_color, connection_width)
 	
 	# Add diagonal connections from the bottom row's outer white points
 	var bottom_left_point = bottom_row[0]
-	var above_left_stick = stick_ends[rows-2][0]["position"]
-	draw_line_with_gap(bottom_left_point, above_left_stick, gap_distance, grid_color, connection_width)
+	var bottom_left_above_stick = stick_ends[rows-2][0]["position"]  
+	draw_line_with_gap(bottom_left_point, bottom_left_above_stick, gap_dist_global, grid_color, connection_width)
 	
 	# Connect rightmost point in bottom row to the right stick endpoint in the row above
 	var bottom_right_point = bottom_row[bottom_row.size()-1]
-	var above_right_stick = stick_ends[rows-2][1]["position"]
-	draw_line_with_gap(bottom_right_point, above_right_stick, gap_distance, grid_color, connection_width)
+	var bottom_right_above_stick = stick_ends[rows-2][1]["position"]
+	draw_line_with_gap(bottom_right_point, bottom_right_above_stick, gap_dist_global, grid_color, connection_width)
 	
 	# Draw all intersection points AFTER drawing all lines
 	for intersection in all_intersections:
