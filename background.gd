@@ -85,11 +85,18 @@ func draw_intersection(pos, is_outer = false):
 		# The distance between the two black circles should equal the distance between white circles
 		var horizontal_offset = bottom_row_distance / 2.0
 		
+		# Calculate positions for the two black circles
+		var left_black_pos = Vector2(pos.x - horizontal_offset, pos.y - vertical_offset)
+		var right_black_pos = Vector2(pos.x + horizontal_offset, pos.y - vertical_offset)
+		
 		# Draw the two black circles
-		draw_circle(Vector2(pos.x - horizontal_offset, pos.y - vertical_offset), 
-			intersection_radius, outer_point_color)
-		draw_circle(Vector2(pos.x + horizontal_offset, pos.y - vertical_offset), 
-			intersection_radius, outer_point_color)
+		draw_circle(left_black_pos, intersection_radius, outer_point_color)
+		draw_circle(right_black_pos, intersection_radius, outer_point_color)
+		
+		# Draw lines from the white circle to the black circles above
+		# Use the same gap distance as for other lines
+		draw_line_with_gap(pos, left_black_pos, gap_dist_global, grid_color, connection_width)
+		draw_line_with_gap(pos, right_black_pos, gap_dist_global, grid_color, connection_width)
 
 # Helper function to draw circle outline
 func draw_circle_arc(center, radius, angle_from, angle_to, color):
