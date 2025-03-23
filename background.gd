@@ -2,7 +2,7 @@ extends Node2D
 
 # Triangle configuration
 var base_width = 200.0  # Base width of the triangle in pixels
-var scale_factor = 1.5  # Scale factor to adjust the overall size (increase for larger triangle)
+var scale_factor = 1.7  # Scale factor to adjust the overall size (increase for larger triangle)
 var height_to_width_ratio = 1  # How much taller the triangle is compared to its width (set to 1.8 as required)
 var grid_color = Color(0.0, 0.0, 0.0, 1.0)  # Black color for the grid lines
 var point_color = Color(0.3, 0.3, 0.3, 1.0)  # Dark gray color for the points
@@ -19,7 +19,7 @@ var gap_dist_global = 0.0  # Distance from visible endpoint to black circle (wil
 # Position and size controls
 var position_x_offset = 0.0  # Horizontal offset from center (positive = right, negative = left)
 var position_y_offset = 0.0  # Vertical offset (positive = down, negative = up)
-var vertical_position_ratio = 0.5  # Position from top (0.0 = top, 0.5 = middle, 1.0 = bottom)
+var vertical_position_ratio = 0.3  # Position from top (0.0 = top, 0.5 = middle, 1.0 = bottom)
 
 # Background effects
 var noise = FastNoiseLite.new()
