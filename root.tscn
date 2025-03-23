@@ -1,8 +1,12 @@
-[gd_scene load_steps=2 format=3 uid="uid://d1j1xu8of2xfb"]
+[gd_scene load_steps=3 format=3 uid="uid://d1j1xu8of2xfb"]
 
 [ext_resource type="Script" uid="uid://cs024ya4xherq" path="res://background.gd" id="1_pq8q7"]
+[ext_resource type="Script" uid="uid://bpfkjb82dr1vo" path="res://marbles.gd" id="2_vu8yl"]
 
 [node name="Root" type="Node2D"]
 
 [node name="Background" type="Node2D" parent="."]
 script = ExtResource("1_pq8q7")
+
+[node name="Marbles" type="Node2D" parent="."]
+script = ExtResource("2_vu8yl")
