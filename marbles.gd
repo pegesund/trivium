@@ -3,15 +3,53 @@ extends Node2D
 # This script will handle the creation and management of marble sprites
 
 # Scale factor for the marble (reduce this to make the marble smaller)
-var marble_scale = 0.15  # 15% of original size
+var marble_scale = 0.165  # 16.5% of original size
 
 func _ready():
 	# Get the viewport size to center the marble
 	var viewport_size = get_viewport_rect().size
 	var center_position = viewport_size / 2
 	
+	# Create pits at all white circle positions
+	create_pits_at_all_grid_points()
+	
 	# Create a blue marble at the center of the screen
-	create_marble("blue", center_position)
+	# create_marble("blue", center_position)  # Commented out as we'll place marbles on pits
+
+# Function to create pits at all white circle positions in the background
+func create_pits_at_all_grid_points():
+	# Get the Background node to access its grid
+	var background = get_node("../Background")
+	
+	# Check if we can get intersection points from the background
+	if background and background.has_method("get_all_intersection_points"):
+		# Get all intersection points
+		var all_intersections = background.get_all_intersection_points()
+		
+		# Create pits at all inner intersection points (white circles)
+		for intersection in all_intersections:
+			if not intersection["is_outer"]:  # Only create pits at inner points (white circles)
+				create_pit(intersection["position"])
+				
+				# Place a marble on top of the pit at the top position
+				if intersection["position"].y == background.get_grid_point_position(0, 0).y:
+					create_marble("blue", intersection["position"])
+
+# Function to create a pit at a specific position
+func create_pit(position):
+	# Create the main container node for this pit
+	var pit_container = Node2D.new()
+	pit_container.position = position
+	pit_container.name = "Pit"
+	add_child(pit_container)
+	
+	# Add the pit sprite
+	var pit_sprite = Sprite2D.new()
+	pit_sprite.texture = load("res://assets/sprites/marbles/pit.png")
+	pit_sprite.scale = Vector2(marble_scale, marble_scale)  # Same scale as marbles
+	pit_container.add_child(pit_sprite)
+	
+	return pit_container
 
 # Function to create a marble with multiple layers at a specific position
 func create_marble(marble_color, position):
