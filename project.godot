@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Nytt Spill-Prosjekt"
-run/main_scene="uid://dn70s5mtqnkwd"
+run/main_scene="uid://d1j1xu8of2xfb"
 config/features=PackedStringArray("4.4", "GL Compatibility")
 config/icon="res://icon.svg"
 
