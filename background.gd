@@ -279,25 +279,33 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 	
 	# Add horizontal sticks to the left side of the triangle
 	for row in range(rows):  # Include all rows
-		var point = grid_points[row][0]  # Leftmost point in row
-		var stick_end = draw_horizontal_stick(point, -1, standard_distance)  # Use standard distance
-		
-		# Store the stick endpoint for this row
-		stick_ends[row].append({"position": stick_end, "side": "left"})
-		
-		# Store the outer intersection point
-		all_intersections.append({"position": stick_end, "is_outer": true})
+		if row > 0:  # Skip the top level (row 0)
+			var point = grid_points[row][0]  # Leftmost point in row
+			var stick_end = draw_horizontal_stick(point, -1, standard_distance)  # Use standard distance
+			
+			# Store the stick endpoint for this row
+			stick_ends[row].append({"position": stick_end, "side": "left"})
+			
+			# Store the outer intersection point
+			all_intersections.append({"position": stick_end, "is_outer": true})
+		else:
+			# Add empty placeholder for the top row to maintain indexing
+			stick_ends[row].append({"position": Vector2.ZERO, "side": "left"})
 	
 	# Add horizontal sticks to the right side of the triangle
 	for row in range(rows):  # Include all rows
-		var point = grid_points[row][row]  # Rightmost point in row
-		var stick_end = draw_horizontal_stick(point, 1, standard_distance)  # Use standard distance
-		
-		# Store the stick endpoint for this row
-		stick_ends[row].append({"position": stick_end, "side": "right"})
-		
-		# Store the outer intersection point
-		all_intersections.append({"position": stick_end, "is_outer": true})
+		if row > 0:  # Skip the top level (row 0)
+			var point = grid_points[row][row]  # Rightmost point in row
+			var stick_end = draw_horizontal_stick(point, 1, standard_distance)  # Use standard distance
+			
+			# Store the stick endpoint for this row
+			stick_ends[row].append({"position": stick_end, "side": "right"})
+			
+			# Store the outer intersection point
+			all_intersections.append({"position": stick_end, "is_outer": true})
+		else:
+			# Add empty placeholder for the top row to maintain indexing
+			stick_ends[row].append({"position": Vector2.ZERO, "side": "right"})
 	
 	# Calculate diagonal directions from top point
 	var top_left_dir = (grid_points[1][0] - triangle_top).normalized()
@@ -319,31 +327,32 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 	
 	# Now draw diagonal connections from outer grid points to black points in the layer above
 	for row in range(1, rows):  # Start from row 1 (second row) since row 0 has no layer above
-		# Connect left edge points to the left stick endpoint in the row above
-		if row < rows - 1:  # Skip the bottom row for left edge
-			var left_point = grid_points[row][0]  # Leftmost point in current row
-			var above_left_stick = stick_ends[row-1][0]["position"]  # Left stick endpoint in row above
+		# Special case for row 1 (connecting to the top level)
+		if row == 1:
+			# For row 1, we connect to the top black circles instead of stick endpoints
+			var left_point = grid_points[row][0]  # Leftmost point in row 1
+			var right_point = grid_points[row][row]  # Rightmost point in row 1
 			
-			# Draw diagonal connection
-			draw_line_with_gap(left_point, above_left_stick, gap_dist_global, grid_color, connection_width)
-		
-		# Connect right edge points to the right stick endpoint in the row above
-		if row < rows - 1:  # Skip the bottom row for right edge
-			var right_point = grid_points[row][row]  # Rightmost point in current row
-			var above_right_stick = stick_ends[row-1][1]["position"]  # Right stick endpoint in row above
+			# Draw diagonal connections to the black circles above the top point
+			draw_line_with_gap(left_point, top_left_black, gap_dist_global, grid_color, connection_width)
+			draw_line_with_gap(right_point, top_right_black, gap_dist_global, grid_color, connection_width)
+		else:
+			# For rows 2 and below, connect to the stick endpoints in the row above
+			# Connect left edge points to the left stick endpoint in the row above
+			if row < rows - 1:  # Skip the bottom row for left edge
+				var left_point = grid_points[row][0]  # Leftmost point in current row
+				var above_left_stick = stick_ends[row-1][0]["position"]  # Left stick endpoint in row above
+				
+				# Draw diagonal connection
+				draw_line_with_gap(left_point, above_left_stick, gap_dist_global, grid_color, connection_width)
 			
-			# Draw diagonal connection
-			draw_line_with_gap(right_point, above_right_stick, gap_dist_global, grid_color, connection_width)
-	
-	# Add diagonal connections from the bottom row's outer white points
-	var bottom_left_point = bottom_row[0]
-	var bottom_left_above_stick = stick_ends[rows-2][0]["position"]  
-	draw_line_with_gap(bottom_left_point, bottom_left_above_stick, gap_dist_global, grid_color, connection_width)
-	
-	# Connect rightmost point in bottom row to the right stick endpoint in the row above
-	var bottom_right_point = bottom_row[bottom_row.size()-1]
-	var bottom_right_above_stick = stick_ends[rows-2][1]["position"]
-	draw_line_with_gap(bottom_right_point, bottom_right_above_stick, gap_dist_global, grid_color, connection_width)
+			# Connect right edge points to the right stick endpoint in the row above
+			if row < rows - 1:  # Skip the bottom row for right edge
+				var right_point = grid_points[row][row]  # Rightmost point in current row
+				var above_right_stick = stick_ends[row-1][1]["position"]  # Right stick endpoint in row above
+				
+				# Draw diagonal connection
+				draw_line_with_gap(right_point, above_right_stick, gap_dist_global, grid_color, connection_width)
 	
 	# Draw all intersection points AFTER drawing all lines
 	for intersection in all_intersections:
