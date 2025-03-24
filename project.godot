@@ -15,6 +15,14 @@ run/main_scene="uid://d1j1xu8of2xfb"
 config/features=PackedStringArray("4.4", "GL Compatibility")
 config/icon="res://icon.svg"
 
+[autoload]
+
+Supabase="*res://addons/supabase/Supabase/supabase.gd"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/supabase/plugin.cfg")
+
 [rendering]
 
 renderer/rendering_method="gl_compatibility"
