@@ -65,6 +65,7 @@ func create_number(number, position):
 	var number_container = Node2D.new()
 	number_container.position = position
 	number_container.name = "Number" + str(number)
+	number_container.z_index = 20  # Set z-index higher than pits (5) and marbles (10)
 	add_child(number_container)
 	
 	# Add the shadow layer (bottom layer)
