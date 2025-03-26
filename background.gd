@@ -70,7 +70,7 @@ func draw_intersection(pos, is_outer = false):
 		
 		# Check if this is a point in the bottom row
 		var viewport_size = get_viewport_rect().size
-		var center_x = viewport_size.x / 2 + position_x_offset
+		var _center_x = viewport_size.x / 2 + position_x_offset
 		var center_y = viewport_size.y * vertical_position_ratio + position_y_offset
 		var scaled_width = base_width * scale_factor
 		var y_size = scaled_width * height_to_width_ratio
@@ -351,8 +351,8 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 			stick_ends[row].append({"position": Vector2.ZERO, "side": "right"})
 	
 	# Calculate diagonal directions from top point
-	var top_left_dir = (grid_points[1][0] - triangle_top).normalized()
-	var top_right_dir = (grid_points[1][1] - triangle_top).normalized()
+	var _top_left_dir = (grid_points[1][0] - triangle_top).normalized()
+	var _top_right_dir = (grid_points[1][1] - triangle_top).normalized()
 	
 	# Draw white circle at the top point (row 0)
 	draw_intersection(triangle_top, false)  # Changed to false to make it white
@@ -543,7 +543,7 @@ func _collect_intersection_points(x_size, height_ratio, x_pos, y_pos):
 	var y_size = x_size * height_ratio
     
 	# Calculate the three points of the triangle
-	var triangle_top = Vector2(x_pos, y_pos)
+	var _triangle_top = Vector2(x_pos, y_pos)
     
 	# Create a triangular grid with 6 rows
 	var rows = 6
