@@ -197,16 +197,27 @@ func start_dragging(marble: Node2D):
 	# Store the original position in case we need to return it
 	original_marble_position = marble.global_position
 	
+	# Find and clear the pit this marble was in (if it was in a pit)
+	var from_pit = find_pit_containing_marble(marble)
+	if from_pit:
+		print("Clearing pit at (", from_pit.grid_y, ",", from_pit.grid_x, ")")
+		from_pit.clear()
+	
 	# Set the dragging marble
 	dragging_marble = marble
-	
-	# Create hover indicator if it doesn't exist
-	if not hover_indicator:
-		create_hover_indicator()
 	
 	# Show the hover indicator
 	if hover_indicator:
 		hover_indicator.visible = true
+
+# Find the pit containing a specific marble
+func find_pit_containing_marble(marble: Node2D) -> Object:
+	# Check all pits in the grid
+	for row in game_manager.background_node.pits:
+		for pit in row:
+			if pit.marble == marble:
+				return pit
+	return null
 
 # Update the hover indicator position based on the closest valid pit
 func update_hover_indicator_position():
@@ -224,8 +235,10 @@ func update_hover_indicator_position():
 		# Update the hover indicator position
 		hover_indicator.global_position = closest_pit.position
 		
-		# Check if the pit is empty and belongs to the current player
-		var is_valid = closest_pit.is_empty()
+		# Check if the pit is valid for placement
+		# A pit is valid if it's empty AND passes any additional validation rules
+		var is_empty = closest_pit.is_empty()
+		var is_valid = is_empty && validate_marble_placement(game_manager.get_current_player(), closest_pit.grid_y, closest_pit.grid_x)
 		
 		# Set the indicator color based on validity
 		var indicator_circle = hover_indicator.get_node("IndicatorCircle")
@@ -391,7 +404,7 @@ func update_dragging_position(mouse_pos: Vector2):
 # Validate if a marble placement is valid for a player at specific triangular coordinates
 func validate_marble_placement(_player, row: int, pos: int) -> bool:
 	# Check if the position is valid and empty
-	if not game_manager.is_pit_empty(row, pos):
+	if not game_manager.is_valid_empty_position(row, pos):
 		return false
 	
 	# Call the custom validation function for additional rules
