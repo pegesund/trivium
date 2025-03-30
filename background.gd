@@ -29,6 +29,45 @@ var animation_speed = 0.01  # Further reduced from 0.02
 var redraw_interval = 1.0  # Only redraw every second (increased from 0.5)
 var time_since_last_redraw = 0.0
 
+# Pit class to hold information about each pit in the triangular grid
+class Pit:
+	var position: Vector2  # World position of the pit
+	var grid_x: int  # Column index within the row
+	var grid_y: int  # Row index
+	var player: int = 0  # 0 = empty, 1-3 = player ID
+	var marble: Node2D = null  # Reference to the marble node if occupied
+	
+	func _init(pos: Vector2, x: int, y: int):
+		position = pos
+		grid_x = x
+		grid_y = y
+	
+	func is_empty() -> bool:
+		return player == 0
+	
+	func place_marble(player_id: int, marble_node: Node2D) -> bool:
+		if is_empty():
+			player = player_id
+			marble = marble_node
+			return true
+		return false
+	
+	func clear():
+		player = 0
+		marble = null
+	
+	func get_description() -> String:
+		return "Pit(%d,%d) at (%d,%d) - %s" % [
+			grid_y, 
+			grid_x, 
+			round(position.x), 
+			round(position.y),
+			"Empty" if is_empty() else "Player " + str(player)
+		]
+
+# Array to store pits organized by row
+var pits = []
+
 func _ready():
 	# Initialize noise for background
 	noise.seed = randi()
@@ -41,6 +80,12 @@ func _ready():
 	
 	# Draw once at startup
 	queue_redraw()
+	
+	# Wait a short time for everything to initialize
+	await get_tree().create_timer(0.5).timeout
+	
+	# Initialize the pits based on the intersection points
+	initialize_pits()
 
 func _process(delta):
 	if subtle_movement:
@@ -398,13 +443,13 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 		if row == rows - 1:
 			continue
 			
-		if row == 1:  # For row 1, we connect to the top point
-			var left_point = grid_points[row][0]  # Leftmost point in row 1
-			var right_point = grid_points[row][row]  # Rightmost point in row 1
+		if row == 1:  # For row 1, connect to the top point
+			var _left_point = grid_points[row][0]  # Leftmost point in row 1
+			var _right_point = grid_points[row][row]  # Rightmost point in row 1
 			
 			# Draw diagonal connections to the top point
-			draw_line_with_gap(left_point, triangle_top, gap_dist_global, grid_color, connection_width)
-			draw_line_with_gap(right_point, triangle_top, gap_dist_global, grid_color, connection_width)
+			draw_line_with_gap(_left_point, triangle_top, gap_dist_global, grid_color, connection_width)
+			draw_line_with_gap(_right_point, triangle_top, gap_dist_global, grid_color, connection_width)
 			
 			# Add direct connection from middle point in row 1 to the top point
 			if grid_points[row].size() > 2:  # Make sure there's a middle point
@@ -413,10 +458,10 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 			
 			# Add diagonal connections from row 1 points to the stick endpoints at the same level
 			if stick_ends[row][0]["position"] != Vector2.ZERO:  # Left stick endpoint
-				draw_line_with_gap(left_point, stick_ends[row][0]["position"], gap_dist_global, grid_color, connection_width)
+				draw_line_with_gap(_left_point, stick_ends[row][0]["position"], gap_dist_global, grid_color, connection_width)
 			
 			if stick_ends[row][1]["position"] != Vector2.ZERO:  # Right stick endpoint
-				draw_line_with_gap(right_point, stick_ends[row][1]["position"], gap_dist_global, grid_color, connection_width)
+				draw_line_with_gap(_right_point, stick_ends[row][1]["position"], gap_dist_global, grid_color, connection_width)
 		elif row == 2:  # For row 2, connect to the points in row 1
 			# Connect each point in row 2 to the corresponding points in row 1
 			for i in range(grid_points[row].size()):
@@ -467,17 +512,17 @@ func draw_triangle(x_size, height_ratio, x_pos, y_pos):
 func _draw():
 	# Get viewport dimensions to center the triangle
 	var viewport_size = get_viewport_rect().size
-    
+	
 	# Calculate center position with offsets
 	var center_x = viewport_size.x / 2 + position_x_offset
 	var center_y = viewport_size.y * vertical_position_ratio + position_y_offset
-    
+	
 	# Draw cool background
 	draw_cool_background(viewport_size)
-    
+	
 	# Calculate the actual width using the scale factor
 	var scaled_width = base_width * scale_factor
-    
+	
 	# Draw the triangle in the middle of the screen
 	draw_triangle(scaled_width, height_to_width_ratio, center_x, center_y)
 
@@ -488,39 +533,39 @@ func get_grid_point_position(grid_x, grid_y):
 	var viewport_size = get_viewport_rect().size
 	var center_x = viewport_size.x / 2 + position_x_offset
 	var center_y = viewport_size.y * vertical_position_ratio + position_y_offset
-    
+	
 	# Calculate the actual width using the scale factor
 	var scaled_width = base_width * scale_factor
 	var y_size = scaled_width * height_to_width_ratio
-    
+	
 	# Calculate the height of each row
 	var rows = 6
 	var row_height = y_size / (rows - 1)
-    
+	
 	# Make sure grid_y is within bounds
 	if grid_y < 0 or grid_y >= rows:
 		return Vector2.ZERO
-    
+	
 	# Calculate row width (proportional to row index)
 	var row_width = scaled_width * grid_y / (rows - 1)
-    
+	
 	# Calculate number of points in this row
 	var points_in_row = grid_y + 1
-    
+	
 	# Make sure grid_x is within bounds
 	if grid_x < 0 or grid_x >= points_in_row:
 		return Vector2.ZERO
-    
+	
 	# Calculate horizontal spacing
 	var col_width = 0
 	if points_in_row > 1:
 		col_width = row_width / (points_in_row - 1)
-    
+	
 	# Calculate position
 	var start_x = center_x - row_width / 2
 	var current_y = center_y + grid_y * row_height
 	var point_x = start_x + grid_x * col_width
-    
+	
 	return Vector2(point_x, current_y)
 
 # Function to get all intersection points (both inner and outer)
@@ -530,10 +575,10 @@ func get_all_intersection_points():
 	var viewport_size = get_viewport_rect().size
 	var center_x = viewport_size.x / 2 + position_x_offset
 	var center_y = viewport_size.y * vertical_position_ratio + position_y_offset
-    
+	
 	# Calculate the actual width using the scale factor
 	var scaled_width = base_width * scale_factor
-    
+	
 	# Call draw_triangle but only to collect intersection points without drawing
 	return _collect_intersection_points(scaled_width, height_to_width_ratio, center_x, center_y)
 
@@ -541,19 +586,20 @@ func get_all_intersection_points():
 func _collect_intersection_points(x_size, height_ratio, x_pos, y_pos):
 	# Calculate height based on the ratio
 	var y_size = x_size * height_ratio
-    
+	
 	# Calculate the three points of the triangle
 	var _triangle_top = Vector2(x_pos, y_pos)
-    
+	
 	# Create a triangular grid with 6 rows
 	var rows = 6
 	var grid_points = []
 	var stick_ends = []  # To store all stick endpoints for diagonal connections
 	var all_intersections = []  # To store all intersection points (both inner and outer)
-    
+	var inner_intersections = []  # To store only the inner points (21 total)
+	
 	# Calculate the height of each row
 	var row_height = y_size / (rows - 1)
-    
+	
 	# Generate points for each row
 	for row in range(rows):
 		var points_in_row = row + 1  # Row 0 has 1 point, row 5 has 6 points
@@ -580,51 +626,61 @@ func _collect_intersection_points(x_size, height_ratio, x_pos, y_pos):
 			row_points.append(point)
 			
 			# Store the intersection point
-			all_intersections.append({"position": point, "is_outer": false})
+			all_intersections.append({"position": point, "is_outer": false, "grid_x": col, "grid_y": row})
+			
+			# Only add to inner_intersections if it's not already there
+			var already_exists = false
+			for existing_point in inner_intersections:
+				if existing_point["position"].distance_to(point) < 1.0:  # Small threshold for floating point comparison
+					already_exists = true
+					break
+			
+			if not already_exists:
+				inner_intersections.append({"position": point, "is_outer": false, "grid_x": col, "grid_y": row})
 		
 		# Add row to grid
 		grid_points.append(row_points)
 		
 		# Initialize stick_ends for this row
 		stick_ends.append([])
-    
+	
 	# Calculate the standard distance between points in the bottom row
 	# This will be used as the standard distance for horizontal sticks
 	var bottom_row = grid_points[rows-1]
 	var standard_distance = 0.0
 	if bottom_row.size() > 1:
 		standard_distance = bottom_row[1].x - bottom_row[0].x
-    
+	
 	# Add horizontal sticks to the left side of the triangle
 	for row in range(rows):  # Include all rows
 		if row > 0:  # Skip the top level (row 0)
 			var point = grid_points[row][0]  # Leftmost point in row
 			var stick_end = Vector2(point.x - standard_distance, point.y)  # Calculate without drawing
-            
+			
 			# Store the stick endpoint for this row
 			stick_ends[row].append({"position": stick_end, "side": "left"})
-            
+			
 			# Store the outer intersection point
-			all_intersections.append({"position": stick_end, "is_outer": true})
+			all_intersections.append({"position": stick_end, "is_outer": true, "grid_x": -1, "grid_y": row})
 		else:
 			# Add empty placeholder for the top row to maintain indexing
 			stick_ends[row].append({"position": Vector2.ZERO, "side": "left"})
-    
+	
 	# Add horizontal sticks to the right side of the triangle
 	for row in range(rows):  # Include all rows
 		if row > 0:  # Skip the top level (row 0)
 			var point = grid_points[row][row]  # Rightmost point in row
 			var stick_end = Vector2(point.x + standard_distance, point.y)  # Calculate without drawing
-            
+			
 			# Store the stick endpoint for this row
 			stick_ends[row].append({"position": stick_end, "side": "right"})
-            
+			
 			# Store the outer intersection point
-			all_intersections.append({"position": stick_end, "is_outer": true})
+			all_intersections.append({"position": stick_end, "is_outer": true, "grid_x": -1, "grid_y": row})
 		else:
 			# Add empty placeholder for the top row to maintain indexing
 			stick_ends[row].append({"position": Vector2.ZERO, "side": "right"})
-    
+	
 	# Now draw diagonal connections from outer grid points to the top point
 	for row in range(1, rows):  # Start from row 1 (second row) since row 0 has no layer above
 		# Skip the bottom row (row 5)
@@ -632,16 +688,168 @@ func _collect_intersection_points(x_size, height_ratio, x_pos, y_pos):
 			continue
 			
 		if row == 1:  # For row 1, connect to the top point instead of black circles
-			var left_point = grid_points[row][0]  # Leftmost point in row 1
-			var right_point = grid_points[row][row]  # Rightmost point in row 1
-            
-			# Store the connections to the top point
-			all_intersections.append({"position": left_point, "is_outer": false})
-			all_intersections.append({"position": right_point, "is_outer": false})
-            
-			# Add direct connection from middle point in row 1 to the top point
-			if grid_points[row].size() > 2:  # Make sure there's a middle point
-				var middle_point = grid_points[row][1]  # Middle point in row 1
-				all_intersections.append({"position": middle_point, "is_outer": false})
-    
-	return all_intersections
+			var _left_point = grid_points[row][0]  # Leftmost point in row 1
+			var _right_point = grid_points[row][row]  # Rightmost point in row 1
+			
+			# We don't need to add these points again as they're already in inner_intersections
+			# from the earlier loop that generated all grid points
+	
+	# Print the number of inner intersection points (should be 21)
+	print("Number of inner intersection points: ", inner_intersections.size())
+	
+	# For debugging purposes, verify the count is correct
+	if inner_intersections.size() != 21:
+		print("WARNING: Expected 21 inner points, but found ", inner_intersections.size())
+		
+		# Count points per row for debugging
+		var points_per_row = {}
+		for point in inner_intersections:
+			var row = point["grid_y"]
+			if not points_per_row.has(row):
+				points_per_row[row] = 0
+			points_per_row[row] += 1
+		
+		# Print the distribution
+		for row in points_per_row:
+			print("Row ", row, " has ", points_per_row[row], " points")
+	
+	# Return inner_intersections instead of all_intersections to ensure only 21 pits
+	return inner_intersections
+
+# Initialize the pits based on the intersection points
+func initialize_pits():
+	# Clear any existing pits
+	pits.clear()
+	
+	# Get all intersection points
+	var all_intersections = get_all_intersection_points()
+	
+	# Create a temporary array to hold all pits
+	var all_pits = []
+	
+	# Create Pit objects for each inner intersection
+	for intersection in all_intersections:
+		if not intersection["is_outer"]:
+			# Create a new pit
+			var grid_coords = find_grid_coordinates(intersection["position"])
+			var new_pit = Pit.new(intersection["position"], grid_coords.x, grid_coords.y)
+			all_pits.append(new_pit)
+	
+	# Organize pits by row (triangular row)
+	# We expect 6 rows: row 0 has 1 pit, row 1 has 2 pits, etc.
+	for row_index in range(6):
+		var row_pits = []
+		
+		# Find all pits for this row
+		for pit in all_pits:
+			if pit.grid_y == row_index:
+				row_pits.append(pit)
+		
+		# Sort the pits by column index within the row
+		row_pits.sort_custom(func(a, b): return a.grid_x < b.grid_x)
+		
+		# Add the row to the pits array
+		pits.append(row_pits)
+	
+	# Print the organized pits
+	organize_and_print_pit_positions()
+
+# Function to organize pit positions into 6 arrays (one per row) and print their coordinates
+func organize_and_print_pit_positions():
+	print("\n=== Triangular Grid Pit Positions ===")
+	
+	for row_index in range(pits.size()):
+		var row = pits[row_index]
+		print("Row ", row_index, " (", row.size(), " pits):")
+		
+		for pit in row:
+			print("  " + pit.get_description())
+	
+	print("=== End of Pit Positions ===\n")
+	
+	# Return the organized pits for potential use elsewhere
+	return pits
+
+# Function to get a pit at specific grid coordinates
+func get_pit(row: int, col: int) -> Pit:
+	if row >= 0 and row < pits.size():
+		var row_pits = pits[row]
+		for pit in row_pits:
+			if pit.grid_x == col:
+				return pit
+	return null
+
+# Function to place a marble at a specific pit
+func place_marble_at_pit(row: int, col: int, player_id: int, marble_node: Node2D) -> bool:
+	var pit = get_pit(row, col)
+	if pit and pit.is_empty():
+		return pit.place_marble(player_id, marble_node)
+	return false
+
+# Function to check if a pit is empty
+func is_pit_empty(row: int, col: int) -> bool:
+	var pit = get_pit(row, col)
+	return pit != null and pit.is_empty()
+
+# Function to get all empty pits
+func get_empty_pits() -> Array:
+	var empty_pits = []
+	for row in pits:
+		for pit in row:
+			if pit.is_empty():
+				empty_pits.append(pit)
+	return empty_pits
+
+# Function to get all pits owned by a specific player
+func get_player_pits(player_id: int) -> Array:
+	var player_pits = []
+	for row in pits:
+		for pit in row:
+			if pit.player == player_id:
+				player_pits.append(pit)
+	return player_pits
+
+# Find grid coordinates for a world position
+func find_grid_coordinates(world_pos: Vector2) -> Vector2i:
+	# This is a simplified version - in a real game you'd have a more accurate conversion
+	# based on your grid layout
+	
+	# Find the closest intersection point
+	var _closest_point = Vector2.ZERO
+	var closest_distance = INF
+	var closest_index = -1
+	
+	var all_intersections = get_all_intersection_points()
+	
+	for i in range(all_intersections.size()):
+		var intersection = all_intersections[i]
+		var distance = intersection["position"].distance_to(world_pos)
+		
+		if distance < closest_distance:
+			closest_distance = distance
+			_closest_point = intersection["position"]
+			closest_index = i
+	
+	# Calculate the grid coordinates based on the index
+	# This is a simplified approach - you'd need to adjust based on your actual grid layout
+	var row = 0
+	var col = 0
+	
+	# Count inner points to find the row and column
+	var inner_count = 0
+	for i in range(all_intersections.size()):
+		if not all_intersections[i]["is_outer"]:
+			if i == closest_index:
+				# Convert inner_count to row and column
+				# For a triangular grid with 1 point in row 0, 2 in row 1, etc.
+				var total = 0
+				row = 0
+				while total + row + 1 <= inner_count:
+					total += row + 1
+					row += 1
+				
+				col = inner_count - total
+				break
+			inner_count += 1
+	
+	return Vector2i(col, row)

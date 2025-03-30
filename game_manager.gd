@@ -70,6 +70,20 @@ func initialize_grid():
 			
 			# Also store the reverse mapping
 			position_to_grid_coords[position_key] = grid_coords
+	
+	# Initialize the pits in the background node
+	# This will create the Pit objects that we'll use for the game
+	background_node.initialize_pits()
+	
+	# Print debug information about the grid
+	print("Initialized grid with " + str(grid_positions.size()) + " positions")
+	print("Initialized " + str(background_node.pits.size()) + " rows of pits")
+	
+	# Verify that we have the correct number of pits (21)
+	var total_pits = 0
+	for row in background_node.pits:
+		total_pits += row.size()
+	print("Total number of pits: " + str(total_pits))
 
 # Find grid coordinates for a world position
 func find_grid_coordinates_for_position(world_pos: Vector2) -> Vector2:
@@ -135,6 +149,27 @@ func end_turn():
 	current_turn = (current_turn + 1) % players.size()
 	print("Now it's Player ", get_current_player().id, "'s turn")
 
+# Place a marble at a specific triangular position (row, position in row)
+func place_marble_at_triangular_position(player_id: int, row: int, pos: int, marble_node: Node2D) -> bool:
+	# Use the background node's function to place the marble at the specified pit
+	return background_node.place_marble_at_pit(row, pos, player_id, marble_node)
+
+# Get a pit at a specific triangular position
+func get_pit_at_triangular_position(row: int, pos: int):
+	return background_node.get_pit(row, pos)
+
+# Check if a triangular position is valid and empty
+func is_valid_empty_position(row: int, pos: int) -> bool:
+	return background_node.is_pit_empty(row, pos)
+
+# Get all empty pits in the triangular grid
+func get_all_empty_positions() -> Array:
+	return background_node.get_empty_pits()
+
+# Get all pits owned by a specific player
+func get_player_positions(player_id: int) -> Array:
+	return background_node.get_player_pits(player_id)
+
 # Find the closest grid position to a world position
 func find_closest_grid_position(world_pos: Vector2) -> Dictionary:
 	var closest_pos = {}
@@ -178,5 +213,18 @@ func debug_print_grid_positions():
 func can_player_move_marble(marble: Node2D) -> bool:
 	var current_player = get_current_player()
 	
-	# Check if this marble belongs to the current player
-	return marble in current_player.large_marbles
+	# First check if this marble is one of the player's starting marbles
+	if marble in current_player.large_marbles:
+		return true
+	
+	# If not a starting marble, check if it's a marble on the board that belongs to this player
+	# Get all pits owned by the current player
+	var player_pits = background_node.get_player_pits(current_player.id)
+	
+	# Check if this marble is in any of the player's pits
+	for pit in player_pits:
+		if pit.marble == marble:
+			return true
+	
+	# If we reach here, the marble doesn't belong to the current player
+	return false
