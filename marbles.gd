@@ -226,25 +226,19 @@ func update_hover_indicator_position():
 		
 		# Check if the pit is empty and belongs to the current player
 		var is_valid = closest_pit.is_empty()
-		print("Hovering over pit at (", closest_pit.grid_y, ",", closest_pit.grid_x, ") - Empty: ", is_valid)
 		
 		# Set the indicator color based on validity
 		var indicator_circle = hover_indicator.get_node("IndicatorCircle")
 		if indicator_circle:
 			if is_valid:
 				# Green for valid placement
-				indicator_circle.modulate = Color(0, 1, 0, 0.8)  # More opaque green
-				print("Setting indicator to GREEN")
+				indicator_circle.modulate = Color(0, 0.8, 0, 0.6)  # Softer green
 			else:
 				# Red for invalid placement
-				indicator_circle.modulate = Color(1, 0, 0, 0.8)  # More opaque red
-				print("Setting indicator to RED")
-		else:
-			print("ERROR: IndicatorCircle node not found!")
+				indicator_circle.modulate = Color(0.8, 0, 0, 0.6)  # Softer red
 		
 		# Show the indicator
 		hover_indicator.visible = true
-		print("Hover indicator visible: ", hover_indicator.visible)
 	else:
 		# No valid pit found, hide the indicator
 		hover_indicator.visible = false
@@ -331,7 +325,7 @@ func create_hover_indicator():
 	# Create a container node
 	hover_indicator = Node2D.new()
 	hover_indicator.name = "HoverIndicator"
-	hover_indicator.z_index = 20  # Make sure it's above everything
+	hover_indicator.z_index = 15  # Above pits but not too dominant
 	add_child(hover_indicator)
 	
 	# Create a circle sprite for the indicator
@@ -344,28 +338,28 @@ func create_hover_indicator():
 	
 	# Draw a circle
 	var center = Vector2(50, 50)
-	var radius = 45
+	var radius = 40  # Slightly smaller radius
 	var color = Color(1, 1, 1, 1)  # White circle, we'll tint it with modulate
 	
-	# Draw the circle
+	# Draw the filled circle
 	for x in range(100):
 		for y in range(100):
 			var pos = Vector2(x, y)
 			var distance = pos.distance_to(center)
-			if distance <= radius:  # Fill the entire circle
+			# Fill the entire circle
+			if distance <= radius:
 				image.set_pixel(x, y, color)
 	
 	# Create texture from image
 	var texture = ImageTexture.create_from_image(image)
 	indicator_circle.texture = texture
 	
-	indicator_circle.scale = Vector2(0.6, 0.6)  # Scale to appropriate size
-	indicator_circle.modulate = Color(0, 1, 0, 0.8)  # More opaque green
+	indicator_circle.scale = Vector2(0.45, 0.45)  # Smaller scale
+	indicator_circle.modulate = Color(0, 0.8, 0, 0.6)  # Softer green
 	hover_indicator.add_child(indicator_circle)
 	
 	# Hide it initially
 	hover_indicator.visible = false
-	print("Hover indicator created with child: ", indicator_circle.name)
 	
 	return hover_indicator
 
