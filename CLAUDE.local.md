@@ -1,0 +1,3 @@
+- never make special rules for any moves, all should be based on general rules
+- all rules must be general, avoid adding code for special case rules
+- Do never ever add rules for special cases, I have said so many times.
