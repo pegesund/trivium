@@ -411,7 +411,7 @@ func validate_marble_placement(_player, row: int, pos: int) -> bool:
 	if not validate(row, pos):
 		return false
 	
-	return true
+	return true 
 
 # Custom validation function for additional game rules
 # This will be expanded later with more complex validation logic
