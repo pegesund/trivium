@@ -71,20 +71,6 @@ func initialize_grid():
 			# Also store the reverse mapping
 			position_to_grid_coords[position_key] = grid_coords
 	
-	# Initialize the pits in the background node
-	# This will create the Pit objects that we'll use for the game
-	background_node.initialize_pits()
-	
-	# Print debug information about the grid
-	print("Initialized grid with " + str(grid_positions.size()) + " positions")
-	print("Initialized " + str(background_node.pits.size()) + " rows of pits")
-	
-	# Verify that we have the correct number of pits (21)
-	var total_pits = 0
-	for row in background_node.pits:
-		total_pits += row.size()
-	print("Total number of pits: " + str(total_pits))
-
 # Find grid coordinates for a world position
 func find_grid_coordinates_for_position(world_pos: Vector2) -> Vector2:
 	# This is a simplified approach - in a real game, you'd use a proper mapping algorithm

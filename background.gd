@@ -70,6 +70,7 @@ var pits = []
 
 func _ready():
 	# Initialize noise for background
+	print("---------- Doing ready...")
 	noise.seed = randi()
 	noise.noise_type = FastNoiseLite.TYPE_PERLIN
 	noise.fractal_type = FastNoiseLite.FRACTAL_FBM
@@ -695,7 +696,7 @@ func _collect_intersection_points(x_size, height_ratio, x_pos, y_pos):
 			# from the earlier loop that generated all grid points
 	
 	# Print the number of inner intersection points (should be 21)
-	print("Number of inner intersection points: ", inner_intersections.size())
+	# print("Number of inner intersection points: ", inner_intersections.size())
 	
 	# For debugging purposes, verify the count is correct
 	if inner_intersections.size() != 21:
@@ -752,10 +753,9 @@ func initialize_pits():
 		pits.append(row_pits)
 	
 	# Print the organized pits
-	organize_and_print_pit_positions()
+	print_pit_positions()
 
-# Function to organize pit positions into 6 arrays (one per row) and print their coordinates
-func organize_and_print_pit_positions():
+func print_pit_positions():
 	print("\n=== Triangular Grid Pit Positions ===")
 	
 	for row_index in range(pits.size()):
@@ -767,9 +767,6 @@ func organize_and_print_pit_positions():
 	
 	print("=== End of Pit Positions ===\n")
 	
-	# Return the organized pits for potential use elsewhere
-	return pits
-
 # Function to get a pit at specific grid coordinates
 func get_pit(row: int, col: int) -> Pit:
 	if row >= 0 and row < pits.size():

@@ -9,6 +9,7 @@ var pit_texture = null
 # Variables for drag and drop functionality
 var dragging_marble = null
 var original_marble_position = Vector2.ZERO
+var original_pit = null
 var hover_indicator = null
 var hover_pit = null  # Reference to the pit we're hovering over
 
@@ -173,39 +174,19 @@ func make_marble_interactive(marble: Node2D):
 	# Make the area pickable
 	area.input_pickable = true
 	
-	# Connect the input event signal
-	area.connect("input_event", Callable(self, "_on_marble_area_input_event").bind(marble))
-
-# Handle input events on marble areas
-func _on_marble_area_input_event(_viewport, event, _shape_idx, marble: Node2D):
-	if event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_LEFT:
-			if event.pressed:
-				# Start dragging
-				start_dragging(marble)
-			else:
-				# Stop dragging
-				stop_dragging()
 
 # Start dragging a marble
 func start_dragging(marble: Node2D):
+	print("Starting to drag marble")
 	# Check if this marble belongs to the current player
 	if not game_manager.can_player_move_marble(marble):
 		print("This marble does not belong to the current player")
 		return
 	
-	# Store the original position in case we need to return it
 	original_marble_position = marble.global_position
-	
-	# Find and clear the pit this marble was in (if it was in a pit)
-	var from_pit = find_pit_containing_marble(marble)
-	if from_pit:
-		print("Clearing pit at (", from_pit.grid_y, ",", from_pit.grid_x, ")")
-		from_pit.clear()
-	
-	# Set the dragging marble
 	dragging_marble = marble
-	
+	original_pit = find_pit_containing_marble(marble)
+
 	# Show the hover indicator
 	if hover_indicator:
 		hover_indicator.visible = true
@@ -283,6 +264,7 @@ func find_closest_pit(world_pos: Vector2):
 
 # Stop dragging and place the marble if valid
 func stop_dragging():
+	print("Stopping to drag marble")
 	if dragging_marble and hover_indicator:
 		# Check if we have a valid pit to place the marble in
 		if hover_pit and hover_indicator.visible:
@@ -292,6 +274,12 @@ func stop_dragging():
 			if hover_pit.is_empty():
 				# Place the marble at the pit's position
 				dragging_marble.global_position = hover_pit.position
+				# clear orginal pit
+				print("Trying to clear original pit")
+				if original_pit:
+					original_pit.clear()
+					# print cleared pit as x and y
+					print("Cleared pit at (", original_pit.grid_y, ",", original_pit.grid_x, ")")
 				
 				# Update the pit with the marble and player
 				if hover_pit.place_marble(current_player.id, dragging_marble):
