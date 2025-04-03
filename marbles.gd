@@ -222,7 +222,7 @@ func update_hover_indicator_position():
 		# Check if the pit is valid for placement
 		# A pit is valid if it's empty AND passes any additional validation rules
 		var is_empty = closest_pit.is_empty()
-		var is_valid = is_empty && validate_marble_placement(game_manager.get_current_player(), closest_pit.grid_y, closest_pit.grid_x)
+		var is_valid = is_empty && validate_marble_placement(game_manager.get_current_player(), closest_pit.grid_y, closest_pit.grid_x) != ValidReturns.INVALID
 		
 		# Set the indicator color based on validity
 		var indicator_circle = hover_indicator.get_node("IndicatorCircle")
@@ -392,31 +392,24 @@ func update_dragging_position(mouse_pos: Vector2):
 		# Update the hover indicator position based on the current mouse position
 		update_hover_indicator_position()
 
+
+enum ValidReturns {INVALID, BOARD, SINGLE, MULTIPLE}
 # Validate if a marble placement is valid for a player at specific triangular coordinates
-func validate_marble_placement(_player, row: int, pos: int) -> bool:
+func validate_marble_placement(_player, row: int, pos: int) -> ValidReturns:
 	# Check if the position is valid and empty
 	if not game_manager.is_valid_empty_position(row, pos):
-		return false
-	
-	# Call the custom validation function for additional rules
-	if not validate(row, pos):
-		return false
-	
-	return true 
-
-# Custom validation function for additional game rules
-func validate(row: int, pos: int) -> bool:
+		return ValidReturns.INVALID	
 
 	var last_from = multijump_pits[multijump_pits.size() - 1]
 	# allow put on board
 	if last_from == null:
-		return true
+		return ValidReturns.BOARD
 	
 	var direction_x = pos - last_from.grid_x 
 	var direction_y = row - last_from.grid_y
 	# do not move to self
 	if direction_x == 0 and direction_y == 0:
-		return false
+		return ValidReturns.INVALID
 
 	# print checking from and to
 	# print("Checking from: ", last_from.grid_x, ", ", last_from.grid_y)
@@ -425,15 +418,14 @@ func validate(row: int, pos: int) -> bool:
 	
 	# look for single moves
 	if abs(direction_x) == 1 and direction_y == 0:
-		return true
+		return ValidReturns.SINGLE
 	if direction_x == 0 and abs(direction_y) == 1:
-		return true
+		return ValidReturns.SINGLE
 	if direction_x == 1 and direction_y == 1:
-		return true
+		return ValidReturns.SINGLE
 	if direction_x == -1 and direction_y == -1:
-		return true
+		return ValidReturns.SINGLE
 		
 	# look for multimove
 	
-	print("Returning false")
-	return false
+	return ValidReturns.INVALID
