@@ -12,6 +12,7 @@ var original_marble_position = Vector2.ZERO
 var original_pit = null
 var hover_indicator = null
 var hover_pit = null  # Reference to the pit we're hovering over
+var multijump_pits = []
 
 # Store the last valid grid position for placement
 var last_valid_grid_position = null
@@ -186,6 +187,8 @@ func start_dragging(marble: Node2D):
 	original_marble_position = marble.global_position
 	dragging_marble = marble
 	original_pit = find_pit_containing_marble(marble)
+	multijump_pits.clear()
+	multijump_pits.append(original_pit)
 
 	# Show the hover indicator
 	if hover_indicator:
@@ -402,8 +405,27 @@ func validate_marble_placement(_player, row: int, pos: int) -> bool:
 	return true 
 
 # Custom validation function for additional game rules
-# This will be expanded later with more complex validation logic
-func validate(_row: int, _pos: int) -> bool:
-	# For now, all positions that aren't occupied are valid
-	# This function will be expanded later with more game rules
-	return true
+func validate(row: int, pos: int) -> bool:
+
+	var last_from = multijump_pits[multijump_pits.size() - 1]
+	# allow put on board
+	if last_from == null:
+		return true
+	
+	var direction_x = last_from.grid_x - pos
+	var direction_y = last_from.grid_y - row
+	# do not move to self
+	if direction_x == 0 and direction_y == 0:
+		return false
+	# look for single moves
+	if direction_x == 1 and direction_y == 0:
+		return true
+	if direction_x == 0 and direction_y == 1:
+		return true
+	if direction_x == -1 and direction_y == 0:
+		return true
+	if direction_x == 0 and direction_y == -1:
+		return true
+	# look for multimove
+	
+	return false
