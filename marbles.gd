@@ -412,20 +412,28 @@ func validate(row: int, pos: int) -> bool:
 	if last_from == null:
 		return true
 	
-	var direction_x = last_from.grid_x - pos
-	var direction_y = last_from.grid_y - row
+	var direction_x = pos - last_from.grid_x 
+	var direction_y = row - last_from.grid_y
 	# do not move to self
 	if direction_x == 0 and direction_y == 0:
 		return false
+
+	# print checking from and to
+	# print("Checking from: ", last_from.grid_x, ", ", last_from.grid_y)
+	# print("Checking to: ", pos, ", ", row)
+	# print("Dicrection x: ", direction_x, ",", direction_y)
+	
 	# look for single moves
-	if direction_x == 1 and direction_y == 0:
+	if abs(direction_x) == 1 and direction_y == 0:
 		return true
-	if direction_x == 0 and direction_y == 1:
+	if direction_x == 0 and abs(direction_y) == 1:
 		return true
-	if direction_x == -1 and direction_y == 0:
+	if direction_x == 1 and direction_y == 1:
 		return true
-	if direction_x == 0 and direction_y == -1:
+	if direction_x == -1 and direction_y == -1:
 		return true
+		
 	# look for multimove
 	
+	print("Returning false")
 	return false
